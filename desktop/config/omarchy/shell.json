@@ -1,0 +1,136 @@
+{
+  "bar": {
+    "background": "opaque",
+    "layout": {
+      "center": [
+        {
+          "format": "dddd HH:mm",
+          "formatAlt": "d MMMM 'W'ww yyyy",
+          "id": "omarchy.clock",
+          "verticalFormat": "HH\n—\nmm"
+        },
+        {
+          "id": "io.github.sanchokusika.pulse",
+          "metricOrder": [
+            "cpu",
+            "mem",
+            "gpu",
+            "temp",
+            "gpuTemp"
+          ],
+          "metrics": [
+            "cpu",
+            "mem",
+            "gpu",
+            "temp",
+            "gpuTemp"
+          ],
+          "metric": "cpu",
+          "style": "text"
+        }
+      ],
+      "centerBegin": [
+        {
+          "id": "omarchy.indicators"
+        }
+      ],
+      "centerEnd": [
+        {
+          "cities": [
+            {
+              "name": "Moscow",
+              "zone": "Europe/Moscow"
+            },
+            {
+              "lat": 55.78874,
+              "lon": 49.12214,
+              "name": "Kazan’",
+              "region": "Tatarstan Republic, RU",
+              "zone": "Europe/Moscow"
+            }
+          ],
+          "id": "omarchy.elsewhen"
+        },
+        {
+          "id": "omarchy.weather"
+        },
+        {
+          "id": "omarchy.system-update"
+        }
+      ],
+      "left": [
+        {
+          "id": "omarchy.menu"
+        },
+        {
+          "id": "omarchy.workspaces"
+        }
+      ],
+      "right": [
+        {
+          "id": "omarchy.tray"
+        },
+        {
+          "id": "msi.hiddify"
+        },
+        {
+          "id": "gotar.omarchy-themes"
+        },
+        {
+          "id": "io.github.amiradelevich.fan"
+        },
+        {
+          "id": "robzolkos.github"
+        },
+        {
+          "id": "omaplug"
+        },
+        {
+          "id": "omarchy.keyboard-layout"
+        },
+        {
+          "id": "omarchy.agents"
+        },
+        {
+          "id": "omarchy.bluetooth"
+        },
+        {
+          "id": "omarchy.network"
+        },
+        {
+          "id": "omarchy.audio"
+        },
+        {
+          "id": "omarchy.monitor"
+        },
+        {
+          "id": "omarchy.power"
+        }
+      ],
+      "tray": []
+    },
+    "position": "top"
+  },
+  "dock": {
+    "pinned": [
+      "org.gnome.Nautilus",
+      "chromium",
+      "foot",
+      "omacalc",
+      "omawrite",
+      "X",
+      "YouTube"
+    ],
+    "position": "bottom"
+  },
+  "idle": {
+    "lock": 300,
+    "screensaver": 150
+  },
+  "plugins": [
+    {
+      "id": "bobbynicholas.omaland"
+    }
+  ],
+  "version": 1
+}
