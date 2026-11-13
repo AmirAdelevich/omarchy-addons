@@ -41,5 +41,5 @@ sudo pacman -U --needed \
 sudo systemctl enable --now pcscd.socket
 sudo install -D -m 644 cryptopro-cades-chrome.json /etc/opt/chrome/policies/managed/cryptopro-cades.json
 python3 enable-chrome-autoscroll.py
-bash "$repo_dir/restore-desktop.sh"
+bash "$repo_dir/install-no-gaps.sh"
 echo 'Перезапусти Google Chrome, чтобы применить настройки.'
