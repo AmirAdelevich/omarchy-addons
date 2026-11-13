@@ -16,7 +16,7 @@ bash install-no-gaps.sh
 
 ## Установка всего комплекта
 
-На Omarchy x86-64 с Google Chrome и GitHub CLI выполни:
+На Omarchy x86-64 с GitHub CLI выполни:
 
 ```bash
 gh repo clone AmirAdelevich/omarchy-addons && bash omarchy-addons/install-all.sh
@@ -24,6 +24,8 @@ gh repo clone AmirAdelevich/omarchy-addons && bash omarchy-addons/install-all.sh
 
 Для доступа к приватному репозиторию войди в GitHub CLI через `gh auth login`.
 Если репозиторий уже клонирован, выполни `git pull && bash install-all.sh` из его каталога.
+
+Скрипт устанавливает Google Chrome и Visual Studio Code из AUR. Если Telegram Desktop ещё не установлен из репозитория Arch, скрипт устанавливает его из AUR. Tailscale устанавливается из репозитория Arch, а служба `tailscaled` включается автоматически. Для подключения к своей сети после установки выполни `sudo tailscale up`. Google Chrome назначается браузером по умолчанию для текущего пользователя.
 
 Скрипт скачивает закреплённый архив из Releases, проверяет SHA-256 и устанавливает КриптоПро CSP с CAdES, JaCarta и Hiddify через pacman. Затем включает PC/SC, добавляет системную политику расширения CAdES для Google Chrome, включает прокрутку нажатием колёсика для текущего пользователя и применяет NoGaps. Pacman может запросить подтверждение. После установки полностью закрой и снова открой Chrome.
 

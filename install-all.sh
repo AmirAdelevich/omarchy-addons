@@ -7,7 +7,7 @@ if [[ $(uname -m) != x86_64 || $EUID == 0 ]]; then
   exit 1
 fi
 
-for cmd in gh unzip sha256sum sudo pacman systemctl python3; do
+for cmd in gh unzip sha256sum sudo pacman systemctl python3 omarchy yay xdg-settings; do
   command -v "$cmd" >/dev/null || { echo "Требуется $cmd" >&2; exit 1; }
 done
 
@@ -20,6 +20,19 @@ echo '753ade4004c9ae9067567140d584f756acddb36ced9a19ed7aa539248f814efd  arch-cry
 unzip -q arch-crypto-setup.zip
 cd arch-crypto-setup
 sha256sum -c SHA256SUMS
+
+aur_packages=(google-chrome visual-studio-code-bin)
+if ! pacman -Q telegram-desktop >/dev/null 2>&1; then
+  aur_packages+=(telegram-desktop-bin)
+fi
+omarchy pkg aur add "${aur_packages[@]}"
+sudo pacman -S --needed tailscale
+sudo systemctl enable --now tailscaled.service
+xdg-settings set default-web-browser google-chrome.desktop
+if [[ $(xdg-settings get default-web-browser) != google-chrome.desktop ]]; then
+  echo 'Не удалось назначить Google Chrome браузером по умолчанию.' >&2
+  exit 1
+fi
 
 sudo pacman -U --needed \
   packages/jacartauc-3.3.6.3921-1-x86_64.pkg.tar.zst \
