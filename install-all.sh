@@ -7,7 +7,25 @@ if [[ $(uname -m) != x86_64 || $EUID == 0 ]]; then
   exit 1
 fi
 
-for cmd in curl unzip sha256sum sudo pacman systemctl python3 omarchy yay xdg-settings; do
+hiddify_only=false
+case "${1:-}" in
+  --hiddify-only) hiddify_only=true; shift ;;
+esac
+if (( $# )); then
+  echo 'Использование: bash install-all.sh [--hiddify-only]' >&2
+  exit 2
+fi
+
+requirements=(curl unzip sha256sum sudo pacman)
+if $hiddify_only; then
+  if pacman -Q hiddify >/dev/null 2>&1 || pacman -Q hiddify-app-bin >/dev/null 2>&1; then
+    echo 'Hiddify уже установлен.'
+    exit 0
+  fi
+else
+  requirements+=(systemctl python3 omarchy yay xdg-settings)
+fi
+for cmd in "${requirements[@]}"; do
   command -v "$cmd" >/dev/null || { echo "Требуется $cmd" >&2; exit 1; }
 done
 
@@ -20,6 +38,17 @@ echo '753ade4004c9ae9067567140d584f756acddb36ced9a19ed7aa539248f814efd  arch-cry
 unzip -q arch-crypto-setup.zip
 cd arch-crypto-setup
 sha256sum -c SHA256SUMS
+
+install_hiddify() {
+  if ! pacman -Q hiddify >/dev/null 2>&1 && ! pacman -Q hiddify-app-bin >/dev/null 2>&1; then
+    sudo pacman -U --needed packages/hiddify-5.5.5-1-x86_64.pkg.tar.zst
+  fi
+}
+
+if $hiddify_only; then
+  install_hiddify
+  exit 0
+fi
 
 aur_packages=(google-chrome visual-studio-code-bin)
 if ! pacman -Q telegram-desktop >/dev/null 2>&1; then
@@ -47,9 +76,7 @@ sudo systemctl enable --now pcscd.socket
 sudo install -D -m 644 cryptopro-cades-chrome.json /etc/opt/chrome/policies/managed/cryptopro-cades.json
 python3 enable-chrome-autoscroll.py
 bash "$repo_dir/install-no-gaps.sh"
-if ! pacman -Q hiddify >/dev/null 2>&1 && ! pacman -Q hiddify-app-bin >/dev/null 2>&1; then
-  sudo pacman -U --needed packages/hiddify-5.5.5-1-x86_64.pkg.tar.zst
-fi
+install_hiddify
 if ! env -u BROWSER xdg-settings set default-web-browser google-chrome.desktop ||
   [[ $(env -u BROWSER xdg-settings get default-web-browser) != google-chrome.desktop ]]; then
   echo 'Не удалось назначить Google Chrome браузером по умолчанию. Сделай это в настройках системы.' >&2

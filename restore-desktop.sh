@@ -7,10 +7,12 @@ state="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy"
 apps="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 packages=false
 fan_control=false
+keep_addons_widget=false
 for argument in "$@"; do
   case $argument in
     --packages) packages=true ;;
     --fan-control) fan_control=true ;;
+    --keep-addons-widget) keep_addons_widget=true ;;
     --dry-run)
       python3 - "$snapshot" <<'PY'
 import json, pathlib, sys
@@ -93,7 +95,14 @@ done < <(cd "$snapshot/config" && find . -type f -print0)
 omarchy theme set "${appearance[0]}"
 omarchy theme bg set "$state/current/theme/backgrounds/${appearance[1]}"
 while IFS= read -r -d '' file; do
-  replace "$snapshot/config/$file" "$config/$file" "config/$file"
+  source="$snapshot/config/$file"
+  if $keep_addons_widget && [[ $file == ./omarchy/shell.json ]] &&
+    [[ -f "$config/omarchy/plugins/io.github.amiradelevich.omarchy-addons/manifest.json" ]]; then
+    source="$tmp/shell.json"
+    jq '.bar.layout.right += [{"id": "io.github.amiradelevich.omarchy-addons"}]' \
+      "$snapshot/config/$file" > "$source"
+  fi
+  replace "$source" "$config/$file" "config/$file"
 done < <(cd "$snapshot/config" && find . -type f -print0)
 while IFS= read -r -d '' file; do
   replace "$snapshot/state/$file" "$state/$file" "state/$file"

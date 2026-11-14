@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.amiradelevich.omarchy-addons",
+  "name": "Omarchy Add-ons",
+  "version": "1.0.0",
+  "author": "AmirAdelevich",
+  "description": "Install the application bundle, Hiddify, and the saved Omarchy desktop",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": {
+    "displayName": "Omarchy Add-ons",
+    "description": "Open the installation menu in a terminal",
+    "category": "System",
+    "defaultSection": "right",
+    "allowMultiple": false
+  }
+}
