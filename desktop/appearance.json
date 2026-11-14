@@ -1,0 +1,10 @@
+{
+  "theme": "nord",
+  "background": "0-black-moon.jpg",
+  "cursor": {
+    "theme": "Yaru",
+    "size": 32
+  },
+  "timezone": "Europe/Moscow",
+  "capturedAt": "2026-11-14"
+}

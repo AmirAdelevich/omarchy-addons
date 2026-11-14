@@ -1,0 +1,15 @@
+{
+  "title": "Katana cooling",
+  "read": "Read CPU and GPU curves",
+  "cpu": "CPU curve · speed (%)",
+  "gpu": "GPU curve · speed (%)",
+  "start": "Start",
+  "apply": "Apply curves",
+  "restore": "Restore original curves",
+  "unavailable": "Cooling controls unavailable through msi-ec",
+  "failed": "Operation failed",
+  "rpm": " RPM",
+  "fan1": "Fan 1 ",
+  "fan2": "   ·   Fan 2 ",
+  "tooltip": "MSI Katana Fan · RPM"
+}

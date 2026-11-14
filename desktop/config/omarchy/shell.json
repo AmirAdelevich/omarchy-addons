@@ -4,9 +4,9 @@
     "layout": {
       "center": [
         {
-          "format": "dddd HH:mm",
-          "formatAlt": "d MMMM 'W'ww yyyy",
           "id": "omarchy.clock",
+          "format": "ddd d MMM HH:mm",
+          "formatAlt": "d MMMM 'W'ww yyyy",
           "verticalFormat": "HH\n—\nmm"
         },
         {
@@ -27,6 +27,9 @@
           ],
           "metric": "cpu",
           "style": "text"
+        },
+        {
+          "id": "msi.katana-fans"
         }
       ],
       "centerBegin": [
@@ -71,13 +74,13 @@
           "id": "omarchy.tray"
         },
         {
+          "id": "liambeck99.update-center"
+        },
+        {
           "id": "msi.hiddify"
         },
         {
           "id": "gotar.omarchy-themes"
-        },
-        {
-          "id": "io.github.amiradelevich.fan"
         },
         {
           "id": "robzolkos.github"

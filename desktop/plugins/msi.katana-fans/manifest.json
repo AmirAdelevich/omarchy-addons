@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "msi.katana-fans",
+  "name": "MSI Katana Fan",
+  "version": "1.0.0",
+  "kinds": ["bar-widget"],
+  "entryPoints": {"barWidget": "BarWidget.qml"},
+  "barWidget": {"displayName": "MSI Katana Fan", "category": "System", "defaultSection": "right"}
+}

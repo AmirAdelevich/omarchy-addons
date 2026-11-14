@@ -1,0 +1,7 @@
+[
+  "cups.path",
+  "bluetooth.service",
+  "cups.service",
+  "tailscaled.service",
+  "cups.socket"
+]

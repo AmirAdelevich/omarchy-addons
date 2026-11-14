@@ -1,0 +1,2 @@
+hiddify
+orca-slicer-bin

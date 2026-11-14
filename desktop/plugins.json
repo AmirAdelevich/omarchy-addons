@@ -1,0 +1,247 @@
+[
+  {
+    "id": "omarchy.active-window",
+    "enabled": false,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.agents",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.audio",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.background",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.bar",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.battery",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.bluetooth",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.clipboard",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.clock",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.dev-gallery",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.disk-speedtest",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.monitor",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.dock",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.dropbox",
+    "enabled": false,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.elsewhen",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.emojis",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "robzolkos.github",
+    "enabled": true,
+    "firstParty": false
+  },
+  {
+    "id": "msi.hiddify",
+    "enabled": true,
+    "firstParty": false
+  },
+  {
+    "id": "omarchy.idle",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.image-picker",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.indicators",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.keyboard-layout",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.lock",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "msi.katana-fans",
+    "enabled": true,
+    "firstParty": false
+  },
+  {
+    "id": "omarchy.media",
+    "enabled": false,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.microphone",
+    "enabled": false,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.network",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.nightlight",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.notifications",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "bobbynicholas.omaland",
+    "enabled": true,
+    "firstParty": false
+  },
+  {
+    "id": "omarchy.menu",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.system-update",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.osd",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omaplug",
+    "enabled": true,
+    "firstParty": false
+  },
+  {
+    "id": "omarchy.polkit",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.power",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "io.github.sanchokusika.pulse",
+    "enabled": true,
+    "firstParty": false
+  },
+  {
+    "id": "omarchy.reminders",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.remote-session",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.spacer",
+    "enabled": false,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.speedtest",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "superwhisper.panel",
+    "enabled": false,
+    "firstParty": false
+  },
+  {
+    "id": "omarchy.tray",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.tailscale",
+    "enabled": false,
+    "firstParty": true
+  },
+  {
+    "id": "gotar.omarchy-themes",
+    "enabled": true,
+    "firstParty": false
+  },
+  {
+    "id": "liambeck99.update-center",
+    "enabled": true,
+    "firstParty": false
+  },
+  {
+    "id": "omarchy.weather",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.wifiqr",
+    "enabled": true,
+    "firstParty": true
+  },
+  {
+    "id": "omarchy.workspaces",
+    "enabled": true,
+    "firstParty": true
+  }
+]

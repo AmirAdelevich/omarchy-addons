@@ -1,0 +1,145 @@
+#!/usr/bin/python
+import fcntl
+import glob
+import json
+import os
+from pathlib import Path
+import sys
+
+DRIVER = Path("/sys/devices/platform/msi-ec")
+EC = "/sys/kernel/debug/ec/ec0/io"
+STATE = Path("/var/lib/katana-fans")
+TABLES = ((0x69, 0x72), (0x81, 0x8a))
+
+def read(path):
+    return Path(path).read_text().strip()
+
+def optional(path):
+    try:
+        return read(path)
+    except OSError:
+        return None
+
+def write(name, value):
+    path = DRIVER / name
+    path.write_text(value + "\n")
+    if read(path) != value:
+        raise RuntimeError("Проверка режима не прошла")
+
+def metrics():
+    fans = next((Path(p).parent for p in glob.glob("/sys/class/hwmon/hwmon*/name")
+                 if optional(p) == "msi_wmi_platform"), None)
+    return dict(rpm=[optional(fans / f"fan{i}_input") if fans else None for i in (1, 2)],
+                temp=[optional(DRIVER / chip / "realtime_temperature") for chip in ("cpu", "gpu")],
+                mode=optional(DRIVER / "fan_mode"), boost=optional(DRIVER / "cooler_boost"))
+
+def tables(fd):
+    result = [[list(os.pread(fd, 6, address)) for address in pair] for pair in TABLES]
+    for temp, speed in result:
+        if (len(temp) != 6 or len(speed) != 6 or temp[0] != 0 or
+            any(not 35 <= t <= 100 for t in temp[1:]) or sorted(set(temp)) != temp or
+            any(s > 150 for s in speed)):
+            raise RuntimeError("Таблицы EC не соответствуют ожидаемому формату")
+    return result
+
+def put(fd, speeds):
+    for (_, address), curve in zip(TABLES, speeds):
+        for i, speed in enumerate(curve):
+            if os.pread(fd, 1, address + i) != bytes([speed]):
+                if os.pwrite(fd, bytes([speed]), address + i) != 1:
+                    raise RuntimeError("Неполная запись EC")
+    if [speed for _, speed in tables(fd)] != speeds:
+        raise RuntimeError("Контроллер вернул другие значения")
+
+def save_state(curves):
+    state = dict(curves=curves, mode=read(DRIVER / "fan_mode"),
+                 boost=read(DRIVER / "cooler_boost"))
+    tmp = STATE / "profile.tmp"
+    with tmp.open("w") as stream:
+        json.dump(state, stream)
+        stream.flush()
+        os.fsync(stream.fileno())
+    tmp.replace(STATE / "profile.json")
+
+def main():
+    action, *args = sys.argv[1:]
+    if action == "metrics" and not args:
+        return metrics()
+    if os.geteuid() or read("/sys/class/dmi/id/product_name") != "Katana 17 B12VFK" or read(DRIVER / "fw_version") != "17L5EMS2.115":
+        raise RuntimeError("Требуется авторизация и поддерживаемая прошивка")
+    STATE.mkdir(mode=0o700, exist_ok=True)
+    with (STATE / "lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if action == "replay" and not args and not (STATE / "profile.json").exists():
+            return metrics()
+        valid = ((action in ("read", "restore", "replay") and not args)
+                 or (action == "apply" and len(args) == 12)
+                 or (action == "mode" and args in (["auto"], ["silent"], ["advanced"]))
+                 or (action == "boost" and args in (["on"], ["off"])))
+        if not valid:
+            raise ValueError("Неизвестная операция")
+        fd = os.open(EC, os.O_RDONLY if action == "read" else os.O_RDWR)
+        try:
+            current = tables(fd)
+            backup = STATE / "original.json"
+            if action == "read":
+                return dict(curves=current, backup=backup.exists())
+            mode = "advanced"
+            boost = "off"
+            if action == "replay":
+                saved = json.loads((STATE / "profile.json").read_text())
+                if [t for t, _ in saved["curves"]] != [t for t, _ in current]:
+                    raise RuntimeError("Температурные пороги контроллера изменились")
+                target = [speed for _, speed in saved["curves"]]
+                mode, boost = saved["mode"], saved["boost"]
+            elif action in ("mode", "boost"):
+                target = [speed for _, speed in current]
+                mode = args[0] if action == "mode" else read(DRIVER / "fan_mode")
+                boost = args[0] if action == "boost" else "off"
+            elif action == "restore":
+                mode = "auto"
+                target = json.loads(backup.read_text())
+            else:
+                values = list(map(int, args))
+                target = [values[:6], values[6:]]
+                for curve in target:
+                    if any(not 0 <= s <= 100 for s in curve) or curve != sorted(curve) or curve[-1] < 75:
+                        raise ValueError("Скорости должны расти от 0 до 100%, последняя точка — от 75%")
+                if not backup.exists():
+                    tmp = STATE / "original.tmp"
+                    tmp.write_text(json.dumps([speed for _, speed in current]))
+                    tmp.replace(backup)
+            before = [speed for _, speed in current]
+            old_mode = read(DRIVER / "fan_mode")
+            old_boost = read(DRIVER / "cooler_boost")
+            try:
+                if before != target:
+                    write("cooler_boost", "off")
+                    write("fan_mode", "auto")
+                    put(fd, target)
+                if action != "boost":
+                    write("cooler_boost", "off")
+                    write("fan_mode", mode)
+                write("cooler_boost", boost)
+                if action != "replay":
+                    save_state(tables(fd))
+            except Exception:
+                try:
+                    put(fd, before)
+                    write("fan_mode", old_mode)
+                    write("cooler_boost", old_boost)
+                except Exception:
+                    write("fan_mode", "auto")
+                    raise RuntimeError("Восстановление таблиц не удалось. Включён Auto")
+                raise
+            if action in ("mode", "boost", "replay"):
+                return metrics()
+            return dict(curves=tables(fd), backup=backup.exists())
+        finally:
+            os.close(fd)
+
+try:
+    print(json.dumps(main(), ensure_ascii=False))
+except (OSError, ValueError, RuntimeError) as error:
+    print(json.dumps({"error": str(error)}, ensure_ascii=False))
+    sys.exit(1)

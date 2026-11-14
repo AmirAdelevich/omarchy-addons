@@ -1,0 +1,47 @@
+{
+  "model": "Katana 17 B12VFK",
+  "firmware": "17L5EMS2.115",
+  "curves": [
+    [
+      [
+        0,
+        55,
+        64,
+        73,
+        76,
+        82
+      ],
+      [
+        0,
+        35,
+        45,
+        55,
+        65,
+        75
+      ]
+    ],
+    [
+      [
+        0,
+        55,
+        61,
+        67,
+        73,
+        79
+      ],
+      [
+        0,
+        35,
+        45,
+        55,
+        65,
+        75
+      ]
+    ]
+  ],
+  "mode": "advanced",
+  "boost": "off",
+  "kernel": "7.2.15-1-omarchy",
+  "module": "katana-msi-ec-7.2.15-1-omarchy.ko",
+  "moduleSha256": "4fe74b267384bf1213492ff107bd2f0e20570afe56e00c2549cc482283bca498"
+}

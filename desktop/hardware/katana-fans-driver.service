@@ -1,0 +1,13 @@
+[Unit]
+Description=Load the Katana fan controller
+ConditionPathExists=/usr/local/libexec/katana-msi-ec-7.2.15-1-omarchy.ko
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/grep -qx 7.2.15-1-omarchy /proc/sys/kernel/osrelease
+ExecStart=/usr/bin/sh -c "test -d /sys/devices/platform/msi-ec || exec /usr/bin/insmod /usr/local/libexec/katana-msi-ec-7.2.15-1-omarchy.ko"
+ExecStart=/usr/bin/modprobe ec_sys write_support=1
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
