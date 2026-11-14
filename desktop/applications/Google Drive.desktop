@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Google Drive
+Exec=omarchy-launch-webapp https://drive.google.com/
+StartupWMClass=chrome-drive.google.com__-Default
+Terminal=false
+Type=Application
+Icon=folder-remote
+StartupNotify=true
