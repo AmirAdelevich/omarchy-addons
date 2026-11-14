@@ -32,12 +32,6 @@ if ! pacman -Q libreoffice-fresh >/dev/null 2>&1 && ! pacman -Q libreoffice-stil
 fi
 sudo pacman -S --needed "${packages[@]}"
 sudo systemctl enable --now tailscaled.service
-xdg-settings set default-web-browser google-chrome.desktop
-if [[ $(xdg-settings get default-web-browser) != google-chrome.desktop ]]; then
-  echo 'Не удалось назначить Google Chrome браузером по умолчанию.' >&2
-  exit 1
-fi
-
 apps="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 mkdir -p "$apps"
 for name in 'Google Photos' 'Google Drive' 'Google Messages'; do
@@ -55,5 +49,9 @@ python3 enable-chrome-autoscroll.py
 bash "$repo_dir/install-no-gaps.sh"
 if ! pacman -Q hiddify >/dev/null 2>&1 && ! pacman -Q hiddify-app-bin >/dev/null 2>&1; then
   sudo pacman -U --needed packages/hiddify-5.5.5-1-x86_64.pkg.tar.zst
+fi
+if ! env -u BROWSER xdg-settings set default-web-browser google-chrome.desktop ||
+  [[ $(env -u BROWSER xdg-settings get default-web-browser) != google-chrome.desktop ]]; then
+  echo 'Не удалось назначить Google Chrome браузером по умолчанию. Сделай это в настройках системы.' >&2
 fi
 echo 'Перезапусти Google Chrome, чтобы применить настройки.'
