@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.amiradelevich.omarchy-addons",
   "name": "Omarchy Add-ons",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "AmirAdelevich",
   "description": "Install the application bundle, Hiddify, and the saved Omarchy desktop",
   "kinds": ["bar-widget"],

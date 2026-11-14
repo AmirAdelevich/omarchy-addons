@@ -7,10 +7,14 @@ state="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy"
 apps="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 packages=false
 fan_control=false
+fan_only=false
+keep_input_and_gaps=false
 keep_addons_widget=false
 for argument in "$@"; do
   case $argument in
     --packages) packages=true ;;
+    --fan-only) fan_only=true ;;
+    --keep-input-and-gaps) keep_input_and_gaps=true ;;
     --fan-control) fan_control=true ;;
     --keep-addons-widget) keep_addons_widget=true ;;
     --dry-run)
@@ -38,6 +42,56 @@ fi
 
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT
+apply_fan_profile() {
+  python3 - "$snapshot/hardware/katana-profile.json" <<'PYMODEL'
+import hashlib,json,pathlib,platform,sys
+source=pathlib.Path(sys.argv[1]);p=json.loads(source.read_text())
+if pathlib.Path('/sys/class/dmi/id/product_name').read_text().strip()!=p['model']:
+ raise SystemExit('Профиль вентиляторов рассчитан на другую модель компьютера.')
+if platform.release()!=p['kernel']:
+ raise SystemExit('Для этого ядра нужно пересобрать модуль msi-ec. Снимок рассчитан на '+p['kernel'])
+if hashlib.sha256((source.parent/p['module']).read_bytes()).hexdigest()!=p['moduleSha256']:
+ raise SystemExit('Контрольная сумма модуля msi-ec не совпала.')
+PYMODEL
+  sudo install -D -o root -g root -m 0755 "$snapshot/hardware/katana-fans" /usr/local/libexec/katana-fans
+  sudo install -o root -g root -m 0644 "$snapshot/hardware/katana-msi-ec-7.2.15-1-omarchy.ko" /usr/local/libexec/katana-msi-ec-7.2.15-1-omarchy.ko
+  sudo install -D -o root -g root -m 0644 "$snapshot/hardware/katana-fans-driver.service" /etc/systemd/system/katana-fans-driver.service
+  sudo install -D -o root -g root -m 0644 "$snapshot/hardware/katana-restore.conf" /etc/systemd/system/katana-fans-driver.service.d/restore.conf
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now katana-fans-driver.service
+  python3 - "$snapshot/hardware/katana-profile.json" <<'PY'
+import json,pathlib,sys
+p=json.load(open(sys.argv[1]))
+if pathlib.Path('/sys/class/dmi/id/product_name').read_text().strip()!=p['model']:
+ raise SystemExit('Профиль вентиляторов рассчитан на другую модель компьютера.')
+firmware=pathlib.Path('/sys/devices/platform/msi-ec/fw_version')
+if not firmware.is_file() or firmware.read_text().strip()!=p['firmware']:
+ raise SystemExit('Нужен драйвер msi-ec и соответствующая прошивка контроллера.')
+PY
+  printf '%s ALL=(root) NOPASSWD: /usr/local/libexec/katana-fans\n' "$(id -un)" > "$tmp/fan-policy"
+  sudo visudo -cf "$tmp/fan-policy"
+  sudo install -m 0440 -o root -g root "$tmp/fan-policy" /etc/sudoers.d/omarchy-addons-katana-fans
+  readarray -t fan < <(python3 - "$snapshot/hardware/katana-profile.json" <<'PY'
+import json,sys
+p=json.load(open(sys.argv[1]))
+print(' '.join(str(v) for _,speeds in p['curves'] for v in speeds));print(p['mode']);print(p['boost'])
+PY
+)
+  read -ra speeds <<< "${fan[0]}"
+  sudo /usr/local/libexec/katana-fans apply "${speeds[@]}"
+  sudo /usr/local/libexec/katana-fans mode "${fan[1]}"
+  sudo /usr/local/libexec/katana-fans boost "${fan[2]}"
+}
+
+if $fan_only; then
+  apply_fan_profile
+  exit 0
+fi
+
+keep_config_file() {
+  $keep_input_and_gaps && [[ $1 == ./hypr/input.lua || $1 == ./hypr/looknfeel.lua ]]
+}
+
 while IFS=$'\t' read -r kind name url revision; do
   checkout="$tmp/$kind/$name"
   mkdir -p "$checkout"
@@ -87,6 +141,7 @@ PY
 )
 # Theme application can regenerate app files, so preserve their previous contents first.
 while IFS= read -r -d '' file; do
+  if keep_config_file "$file"; then continue; fi
   if [[ -e "$config/$file" ]]; then
     mkdir -p "$(dirname -- "$backup/config/$file")"
     cp -a -- "$config/$file" "$backup/config/$file"
@@ -95,6 +150,7 @@ done < <(cd "$snapshot/config" && find . -type f -print0)
 omarchy theme set "${appearance[0]}"
 omarchy theme bg set "$state/current/theme/backgrounds/${appearance[1]}"
 while IFS= read -r -d '' file; do
+  if keep_config_file "$file"; then continue; fi
   source="$snapshot/config/$file"
   if $keep_addons_widget && [[ $file == ./omarchy/shell.json ]] &&
     [[ -f "$config/omarchy/plugins/io.github.amiradelevich.omarchy-addons/manifest.json" ]]; then
@@ -127,43 +183,7 @@ for plugin in json.load(open(sys.argv[1])):
 PY
 )
 if $fan_control; then
-  python3 - "$snapshot/hardware/katana-profile.json" <<'PYMODEL'
-import hashlib,json,pathlib,platform,sys
-source=pathlib.Path(sys.argv[1]);p=json.loads(source.read_text())
-if pathlib.Path('/sys/class/dmi/id/product_name').read_text().strip()!=p['model']:
- raise SystemExit('Профиль вентиляторов рассчитан на другую модель компьютера.')
-if platform.release()!=p['kernel']:
- raise SystemExit('Для этого ядра нужно пересобрать модуль msi-ec. Снимок рассчитан на '+p['kernel'])
-if hashlib.sha256((source.parent/p['module']).read_bytes()).hexdigest()!=p['moduleSha256']:
- raise SystemExit('Контрольная сумма модуля msi-ec не совпала.')
-PYMODEL
-  sudo install -o root -g root -m 0644 "$snapshot/hardware/katana-msi-ec-7.2.15-1-omarchy.ko" /usr/local/libexec/katana-msi-ec-7.2.15-1-omarchy.ko
-  sudo install -D -o root -g root -m 0644 "$snapshot/hardware/katana-fans-driver.service" /etc/systemd/system/katana-fans-driver.service
-  sudo install -D -o root -g root -m 0644 "$snapshot/hardware/katana-restore.conf" /etc/systemd/system/katana-fans-driver.service.d/restore.conf
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now katana-fans-driver.service
-  python3 - "$snapshot/hardware/katana-profile.json" <<'PY'
-import json,pathlib,sys
-p=json.load(open(sys.argv[1]))
-if pathlib.Path('/sys/class/dmi/id/product_name').read_text().strip()!=p['model']:
- raise SystemExit('Профиль вентиляторов рассчитан на другую модель компьютера.')
-firmware=pathlib.Path('/sys/devices/platform/msi-ec/fw_version')
-if not firmware.is_file() or firmware.read_text().strip()!=p['firmware']:
- raise SystemExit('Нужен драйвер msi-ec и соответствующая прошивка контроллера.')
-PY
-  printf '%s ALL=(root) NOPASSWD: /usr/local/libexec/katana-fans\n' "$(id -un)" > "$tmp/fan-policy"
-  sudo visudo -cf "$tmp/fan-policy"
-  sudo install -m 0440 -o root -g root "$tmp/fan-policy" /etc/sudoers.d/omarchy-addons-katana-fans
-  readarray -t fan < <(python3 - "$snapshot/hardware/katana-profile.json" <<'PY'
-import json,sys
-p=json.load(open(sys.argv[1]))
-print(' '.join(str(v) for _,speeds in p['curves'] for v in speeds));print(p['mode']);print(p['boost'])
-PY
-)
-  read -ra speeds <<< "${fan[0]}"
-  sudo /usr/local/libexec/katana-fans apply "${speeds[@]}"
-  sudo /usr/local/libexec/katana-fans mode "${fan[1]}"
-  sudo /usr/local/libexec/katana-fans boost "${fan[2]}"
+  apply_fan_profile
 fi
 hyprctl reload
 errors=$(hyprctl configerrors)

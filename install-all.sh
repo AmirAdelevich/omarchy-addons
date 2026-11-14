@@ -8,11 +8,13 @@ if [[ $(uname -m) != x86_64 || $EUID == 0 ]]; then
 fi
 
 hiddify_only=false
+apps_only=false
 case "${1:-}" in
+  --apps-only) apps_only=true; shift ;;
   --hiddify-only) hiddify_only=true; shift ;;
 esac
 if (( $# )); then
-  echo 'Использование: bash install-all.sh [--hiddify-only]' >&2
+  echo 'Использование: bash install-all.sh [--apps-only | --hiddify-only]' >&2
   exit 2
 fi
 
@@ -74,6 +76,9 @@ sudo pacman -U --needed \
   packages/cryptopro-csp-k1-5.0.13600-2-x86_64.pkg.tar.zst
 sudo systemctl enable --now pcscd.socket
 sudo install -D -m 644 cryptopro-cades-chrome.json /etc/opt/chrome/policies/managed/cryptopro-cades.json
+if $apps_only; then
+  exit 0
+fi
 python3 enable-chrome-autoscroll.py
 bash "$repo_dir/install-no-gaps.sh"
 install_hiddify
