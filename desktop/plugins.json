@@ -80,16 +80,6 @@
     "firstParty": true
   },
   {
-    "id": "robzolkos.github",
-    "enabled": true,
-    "firstParty": false
-  },
-  {
-    "id": "msi.hiddify",
-    "enabled": true,
-    "firstParty": false
-  },
-  {
     "id": "omarchy.idle",
     "enabled": true,
     "firstParty": true
@@ -145,11 +135,6 @@
     "firstParty": true
   },
   {
-    "id": "bobbynicholas.omaland",
-    "enabled": true,
-    "firstParty": false
-  },
-  {
     "id": "omarchy.menu",
     "enabled": true,
     "firstParty": true
@@ -165,11 +150,6 @@
     "firstParty": true
   },
   {
-    "id": "omaplug",
-    "enabled": true,
-    "firstParty": false
-  },
-  {
     "id": "omarchy.polkit",
     "enabled": true,
     "firstParty": true
@@ -178,11 +158,6 @@
     "id": "omarchy.power",
     "enabled": true,
     "firstParty": true
-  },
-  {
-    "id": "io.github.sanchokusika.pulse",
-    "enabled": true,
-    "firstParty": false
   },
   {
     "id": "omarchy.reminders",
@@ -205,11 +180,6 @@
     "firstParty": true
   },
   {
-    "id": "superwhisper.panel",
-    "enabled": false,
-    "firstParty": false
-  },
-  {
     "id": "omarchy.tray",
     "enabled": true,
     "firstParty": true
@@ -218,16 +188,6 @@
     "id": "omarchy.tailscale",
     "enabled": false,
     "firstParty": true
-  },
-  {
-    "id": "gotar.omarchy-themes",
-    "enabled": true,
-    "firstParty": false
-  },
-  {
-    "id": "liambeck99.update-center",
-    "enabled": true,
-    "firstParty": false
   },
   {
     "id": "omarchy.weather",

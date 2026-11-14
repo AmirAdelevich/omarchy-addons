@@ -22,7 +22,6 @@ sources=[row.split('\t') for row in (root/'sources.tsv').read_text().splitlines(
 assert all(len(row)==4 and len(row[3])==40 and row[2].startswith('https://github.com/') for row in sources)
 ids={row[1] for row in sources if row[0]=='plugins'}
 ids.update(json.loads(p.read_text())['id'] for p in (root/'plugins').glob('*/manifest.json'))
-ids.add('superwhisper.panel')
 assert all(p['firstParty'] or p['id'] in ids for p in plugins)
 print('Снимок корректен. Тема',appearance['theme'],'плагинов',len(plugins),'источников',len(sources))
 PY
@@ -74,14 +73,8 @@ for theme in "$snapshot/themes/"*; do
 done
 if $packages; then
   bash "$repo/restore-packages.sh"
-  while IFS= read -r unit; do sudo systemctl enable --now "$unit"; done < <(python3 -c 'import json,sys; print("\n".join(json.load(open(sys.argv[1]))))' "$snapshot/services.json")
 else
-  omarchy pkg add ttf-ia-writer chromium superwhisper-bin
-fi
-superwhisper=/opt/superwhisper/assets/omarchy-plugin/superwhisper-panel
-if [[ -f $superwhisper/manifest.json ]]; then
-  ln -s "$superwhisper" "$tmp/superwhisper-panel"
-  replace "$tmp/superwhisper-panel" "$config/omarchy/plugins/superwhisper-panel" config/omarchy/plugins/superwhisper-panel
+  omarchy pkg add ttf-ia-writer chromium
 fi
 sudo install -D -o root -g root -m 0755 "$snapshot/hardware/katana-fans" /usr/local/libexec/katana-fans
 readarray -t appearance < <(python3 - "$snapshot/appearance.json" <<'PY'
@@ -124,7 +117,6 @@ for plugin in json.load(open(sys.argv[1])):
  print(plugin['id']+'\t'+str(plugin['enabled']).lower())
 PY
 )
-if command -v superwhisper >/dev/null; then python3 "$repo/restore-superwhisper.py"; fi
 if $fan_control; then
   python3 - "$snapshot/hardware/katana-profile.json" <<'PYMODEL'
 import hashlib,json,pathlib,platform,sys

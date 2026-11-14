@@ -10,25 +10,6 @@
           "verticalFormat": "HH\n—\nmm"
         },
         {
-          "id": "io.github.sanchokusika.pulse",
-          "metricOrder": [
-            "cpu",
-            "mem",
-            "gpu",
-            "temp",
-            "gpuTemp"
-          ],
-          "metrics": [
-            "cpu",
-            "mem",
-            "gpu",
-            "temp",
-            "gpuTemp"
-          ],
-          "metric": "cpu",
-          "style": "text"
-        },
-        {
           "id": "msi.katana-fans"
         }
       ],
@@ -74,21 +55,6 @@
           "id": "omarchy.tray"
         },
         {
-          "id": "liambeck99.update-center"
-        },
-        {
-          "id": "msi.hiddify"
-        },
-        {
-          "id": "gotar.omarchy-themes"
-        },
-        {
-          "id": "robzolkos.github"
-        },
-        {
-          "id": "omaplug"
-        },
-        {
           "id": "omarchy.keyboard-layout"
         },
         {
@@ -130,10 +96,6 @@
     "lock": 300,
     "screensaver": 150
   },
-  "plugins": [
-    {
-      "id": "bobbynicholas.omaland"
-    }
-  ],
+  "plugins": [],
   "version": 1
 }
