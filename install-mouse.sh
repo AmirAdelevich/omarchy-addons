@@ -2,7 +2,7 @@
 set -euo pipefail
 
 config="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/input.lua"
-settings='hl.config({ input = { sensitivity = -0.10, accel_profile = "flat" } })'
+settings='hl.config({ input = { sensitivity = 0, accel_profile = "flat" } })'
 if [[ ! -f "$config" ]]; then
   printf 'Файл Omarchy не найден: %s\n' "$config" >&2
   exit 1
@@ -19,7 +19,7 @@ if hyprctl reload && errors=$(hyprctl configerrors) && [[ -z "$errors" ]]; then
   if [[ -n "$backup" ]]; then
     printf 'Резервная копия: %s\n' "$backup"
   fi
-  printf 'Чувствительность мыши: -0.10. Ускорение отключено.\n'
+  printf 'Чувствительность мыши: 0. Ускорение отключено.\n'
 else
   if [[ -n "$backup" ]]; then
     cp -p -- "$backup" "$config"

@@ -69,4 +69,4 @@ hl.config({ input = { kb_options = "omarchy:shift_caps_compose,grp:alt_shift_tog
 -- END xarishark.language-input switch hotkey
 
 -- Mouse speed and acceleration.
-hl.config({ input = { sensitivity = -0.10, accel_profile = "flat" } })
+hl.config({ input = { sensitivity = 0, accel_profile = "flat" } })
