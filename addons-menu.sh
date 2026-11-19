@@ -103,6 +103,7 @@ print_menu() {
   printf 'Omarchy Add-ons'
   [[ -n $version ]] && printf ' %s' "$version"
   printf '\n\nВведи номера через пробел, например: 13 21 33. Enter — выход.\n'
+  printf 'После каждой задачи меню ждёт следующие номера.\n'
   for i in "${!items_label[@]}"; do
     if (( items_sec[i] != s )); then
       s=${items_sec[i]}
@@ -200,25 +201,32 @@ run_picks() {
   else
     printf '\nГотово.\n'
   fi
-  if [[ -t 0 ]]; then
-    read -r -p 'Enter — закрыть окно. ' _ || true
-  fi
   return $status
 }
+
+# Read from the controlling terminal when there is one, so the menu still
+# works if stdin was redirected when the widget launched it.
+input_fd=0
+if [[ ! -t 0 ]] && { exec 3</dev/tty; } 2>/dev/null; then
+  input_fd=3
+fi
 
 interactive() {
   local answer
   print_menu
+  # Run what was entered, then stay on the prompt: after every task the menu
+  # waits for the next numbers instead of closing the window.
   while :; do
-    read -r -p 'Номера: ' answer || return 0
+    read -r -u "$input_fd" -p 'Номера (Enter — выход): ' answer || return 0
     answer=${answer//,/ }
     if [[ -z ${answer//[[:space:]]/} ]]; then
       return 0
     fi
     # shellcheck disable=SC2086
-    collect_picks $answer && break
+    collect_picks $answer || continue
+    run_picks
+    printf '\n'
   done
-  run_picks
 }
 
 case "${1:-}" in
