@@ -52,6 +52,27 @@
       ],
       "right": [
         {
+          "id": "io.github.sanchokusika.pulse",
+          "metrics": [
+            "cpu",
+            "mem",
+            "gpu",
+            "temp",
+            "gpuTemp",
+            "ssdTemp"
+          ],
+          "metric": "cpu",
+          "metricOrder": [
+            "ssdTemp",
+            "cpu",
+            "mem",
+            "gpu",
+            "temp",
+            "gpuTemp"
+          ],
+          "style": "text"
+        },
+        {
           "id": "omarchy.tray"
         },
         {

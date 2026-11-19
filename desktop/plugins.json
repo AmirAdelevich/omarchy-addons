@@ -110,6 +110,11 @@
     "firstParty": false
   },
   {
+    "id": "io.github.sanchokusika.pulse",
+    "enabled": true,
+    "firstParty": false
+  },
+  {
     "id": "omarchy.media",
     "enabled": false,
     "firstParty": true

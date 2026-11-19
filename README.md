@@ -73,7 +73,17 @@ cd ~/omarchy-addons && git pull --ff-only && bash install-all.sh
 
 Снимок обновлён 14 ноября 2026 года с текущей установленной системы. В нём сохранены тема **Nord**, обои **0-black-moon**, шрифт **iA Writer Mono S**, нулевые отступы окон, GDK_SCALE=2, раскладки us/ru с Alt+Shift, верхняя панель, док и приложения по умолчанию.
 
-Из сторонних плагинов устанавливается только **Fans** (`msi.katana-fans`) с его helper. Остальные сторонние плагины устанавливаются вручную. Верхняя панель содержит встроенные виджеты Omarchy и Fans. Дополнительные темы Astral и Azure Glow закреплены в `desktop/sources.tsv`.
+Из сторонних плагинов устанавливаются **Fans** (`msi.katana-fans`) с его helper и **Pulse** (`io.github.sanchokusika.pulse`) из репозитория `AmirAdelevich/omarchy-pulse`. Остальные сторонние плагины устанавливаются вручную. Верхняя панель содержит встроенные виджеты Omarchy, Fans и Pulse. Версии сторонних плагинов и дополнительные темы Astral и Azure Glow закреплены в `desktop/sources.tsv`.
+
+### Pulse
+
+Pulse показывает процессор, память, GPU, температуры и энергопотребление. Ватты CPU читаются из счётчиков Intel RAPL и требуют узкого правила sudoers, иначе в панели останутся только ватты GPU из `nvidia-smi`:
+
+```sudoers
+<username> ALL=(root) NOPASSWD: /usr/bin/cat /sys/class/powercap/intel-rapl\:0/energy_uj, /usr/bin/cat /sys/class/powercap/intel-rapl\:0\:0/energy_uj
+```
+
+Правило устанавливается в `/etc/sudoers.d/pulse-rapl`. После восстановления рабочего стола проверь его командой `sudo -n cat /sys/class/powercap/intel-rapl:0/energy_uj`.
 
 ### Новая машина
 
