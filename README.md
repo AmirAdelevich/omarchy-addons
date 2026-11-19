@@ -21,8 +21,6 @@ omarchy plugin add https://github.com/AmirAdelevich/omarchy-addons.git --enable
 17. Веб-приложения Google Фото, Диск, Сообщения.
 18. КриптоПро CSP, CAdES и JaCarta.
 19. Hiddify.
-110. Прокрутка колёсиком в Chrome.
-111. Google Chrome браузером по умолчанию.
 
 **2. Плагины**
 
@@ -34,6 +32,8 @@ omarchy plugin add https://github.com/AmirAdelevich/omarchy-addons.git --enable
 31. Мышь: чувствительность `0` без ускорения.
 32. NoGaps: убрать отступы окон.
 33. Усиление звука динамиков: цифровое усиление с ограничителем (см. раздел ниже).
+34. Прокрутка колёсиком в Chrome.
+35. Google Chrome браузером по умолчанию.
 
 **4. Оборудование**
 
@@ -50,7 +50,7 @@ bash addons-menu.sh --list          # показать меню
 bash addons-menu.sh --run 17 33     # веб-приложения и усиление звука
 ```
 
-Пункты блока 1 устанавливают только выбранное: каждый из них — отдельный вызов `install-all.sh` с именем компонента, например `bash install-all.sh chrome`.
+Пункты блока 1, а также 34 и 35 устанавливают только выбранное: каждый из них — отдельный вызов `install-all.sh` с именем компонента, например `bash install-all.sh chrome`.
 
 Для установки пакетов и системных настроек может потребоваться пароль sudo.
 
