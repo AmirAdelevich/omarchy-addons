@@ -100,7 +100,7 @@ print_menu() {
   local s=-1 n=0 i
   printf 'Omarchy Add-ons'
   [[ -n $version ]] && printf ' %s' "$version"
-  printf '\n\nВведи номера через пробел, например: 1.3 2.1 3.2. Enter — выход.\n'
+  printf '\n\nВведи номера через пробел, например: 13 21 33. Enter — выход.\n'
   for i in "${!items_label[@]}"; do
     if (( items_sec[i] != s )); then
       s=${items_sec[i]}
@@ -108,10 +108,11 @@ print_menu() {
       printf '\n%d. %s\n' "$((s + 1))" "${sections[s]}"
     fi
     n=$((n + 1))
-    printf '   %d.%d. %s\n' "$((s + 1))" "$n" "${items_label[i]}"
+    printf '   %d%d. %s\n' "$((s + 1))" "$n" "${items_label[i]}"
   done
-  printf '\nНомер блока и номер пункта пишутся через точку: 2.1 — плагин Fans, 3.3 — усиление звука.\n'
-  printf 'Пункты 1.1-1.11 ставят только выбранное. Пункт 5.1 заменяет настройки и сохраняет резервную копию.\n'
+  printf '\nПиши блок и пункт подряд: 21 — плагин Fans, 33 — усиление звука, 111 — Chrome по умолчанию.\n'
+  printf 'Можно и через точку: 2.1, 3.3, 1.11. Пункты блока 1 ставят только выбранное.\n'
+  printf 'Пункт 51 заменяет настройки и сохраняет резервную копию.\n'
   printf 'Для пакетов и системных настроек может понадобиться sudo.\n'
 }
 
@@ -131,19 +132,24 @@ collect_picks() {
   done
   for token in "${tokens[@]}"; do
     if [[ $token =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+      # 1.11 — блок и пункт через точку.
       s=$((10#${BASH_REMATCH[1]}))
       n=$((10#${BASH_REMATCH[2]}))
-    elif [[ $token =~ ^[0-9]+$ ]]; then
+    elif [[ $token =~ ^([0-9])([0-9]+)$ ]]; then
+      # 111 — первая цифра блок, остальные пункт: 1.11.
+      s=$((10#${BASH_REMATCH[1]}))
+      n=$((10#${BASH_REMATCH[2]}))
+    elif [[ $token =~ ^[0-9]$ ]]; then
       s=$((10#${token}))
       if (( s < 1 || s > ${#sections[@]} )); then
         printf 'Нет блока %d (всего %d).\n' "$s" "${#sections[@]}" >&2
       else
-        printf 'Нужен номер пункта: %d.1, %d.2 и так далее.\n' "$s" "$s" >&2
+        printf 'Нужен номер пункта: %d1, %d2 и так далее.\n' "$s" "$s" >&2
       fi
       ok=0
       continue
     else
-      printf 'Не понял «%s». Формат: блок.пункт, например 1.3\n' "$token" >&2
+      printf 'Не понял «%s». Пиши блок и пункт подряд: 13 — блок 1 пункт 3, 111 — блок 1 пункт 11.\n' "$token" >&2
       ok=0
       continue
     fi
@@ -167,7 +173,7 @@ collect_picks() {
       continue
     }
     picks+=("$idx")
-    pick_keys+=("$s.$n")
+    pick_keys+=("$s$n")
   done
   (( ok )) && (( ${#picks[@]} > 0 ))
 }
