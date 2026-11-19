@@ -11,6 +11,7 @@ Omarchy Add-ons
 4. Применить NoGaps: убрать отступы окон
 5. Установить Hiddify
 6. Применить профиль вентиляторов MSI Katana
+7. Усилить звук динамиков: +10 дБ с ограничителем
 
 Снимок заменяет настройки и сохраняет резервную копию. Настройки мыши,
 клавиатуры и оформления окон (включая отступы) остаются текущими.
@@ -27,8 +28,9 @@ case "$choice" in
   4) bash "$repo/install-no-gaps.sh" || status=$? ;;
   5) bash "$repo/install-all.sh" --hiddify-only || status=$? ;;
   6) bash "$repo/restore-desktop.sh" --fan-only || status=$? ;;
+  7) bash "$repo/install-sound-boost.sh" || status=$? ;;
   '') exit 0 ;;
-  *) printf 'Выбери пункт от 1 до 6.\n' >&2; status=2 ;;
+  *) printf 'Выбери пункт от 1 до 7.\n' >&2; status=2 ;;
 esac
 
 if (( status == 0 )); then
