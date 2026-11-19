@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.amiradelevich.omarchy-addons",
   "name": "Omarchy Add-ons",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "author": "AmirAdelevich",
   "description": "Install the application bundle, Hiddify, the saved Omarchy desktop, and a speaker loudness boost",
   "kinds": ["bar-widget"],
