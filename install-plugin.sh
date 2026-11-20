@@ -50,15 +50,15 @@ enable_plugin() {
 }
 
 install_fans() {
-  require omarchy-shell sudo
+  require omarchy-shell sudo python3
   backup_existing "$plugins/msi.katana-fans"
   install -d "$plugins/msi.katana-fans"
   cp -a "$repo/desktop/plugins/msi.katana-fans/." "$plugins/msi.katana-fans/"
-  # Helper behind the plugin; the fan driver and profile are a separate step
-  # (restore-desktop.sh --fan-only).
+  # Install the helper before restoring the driver and fan profile.
   sudo install -D -o root -g root -m 0755 "$repo/desktop/hardware/katana-fans" /usr/local/libexec/katana-fans
+  bash "$repo/restore-desktop.sh" --fan-only
   enable_plugin msi.katana-fans
-  printf 'Плагин Fans установлен. Для управления вентиляторами нужен профиль MSI Katana.\n'
+  printf 'Плагин Fans установлен, драйвер и профиль вентиляторов настроены.\n'
 }
 
 install_pulse() {
