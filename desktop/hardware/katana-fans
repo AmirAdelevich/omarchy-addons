@@ -62,7 +62,12 @@ def save_state(curves):
     tmp.replace(STATE / "profile.json")
 
 def main():
-    action, *args = sys.argv[1:]
+    arguments = sys.argv[1:]
+    if arguments[:1] == ["--"]:
+        arguments = arguments[1:]
+    if not arguments:
+        raise ValueError("Неизвестная операция")
+    action, *args = arguments
     if action == "metrics" and not args:
         return metrics()
     if os.geteuid() or read("/sys/class/dmi/id/product_name") != "Katana 17 B12VFK" or read(DRIVER / "fw_version") != "17L5EMS2.115":
