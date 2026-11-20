@@ -58,7 +58,15 @@ PYMODEL
   sudo install -D -o root -g root -m 0644 "$snapshot/hardware/katana-fans-driver.service" /etc/systemd/system/katana-fans-driver.service
   sudo install -D -o root -g root -m 0644 "$snapshot/hardware/katana-restore.conf" /etc/systemd/system/katana-fans-driver.service.d/restore.conf
   sudo systemctl daemon-reload
-  sudo systemctl enable --now katana-fans-driver.service
+  sudo systemctl enable --now katana-fans-driver.service || {
+    sudo systemctl status --no-pager --full katana-fans-driver.service || true
+    return 1
+  }
+  if [[ ! -d /sys/devices/platform/msi-ec ]]; then
+    sudo journalctl -u katana-fans-driver.service --no-pager -n 30 >&2 || true
+    echo 'Не удалось загрузить драйвер msi-ec; управление вентиляторами не настроено.' >&2
+    return 1
+  fi
   python3 - "$snapshot/hardware/katana-profile.json" <<'PY'
 import json,pathlib,sys
 p=json.load(open(sys.argv[1]))

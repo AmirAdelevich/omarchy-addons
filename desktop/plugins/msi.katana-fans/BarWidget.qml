@@ -55,8 +55,11 @@ BarWidget {
                     poll.running = true;
                 curves = data.curves;
                 backup = data.backup;
-            } else if (data.rpm)
+            } else if (data.rpm) {
                 stats = data;
+                if (data.available)
+                    error = "";
+            }
         } catch (_) {
             error = "failed";
         }
@@ -250,7 +253,7 @@ BarWidget {
                     width: parent.width
                     wrapMode: Text.WordWrap
                     visible: text.length > 0
-                    text: (root.error === "failed" ? strings.t("failed") : root.error) || (root.stats.mode ? "" : strings.t("unavailable"))
+                    text: (root.error === "failed" ? strings.t("failed") : root.error) || (root.stats.available ? "" : strings.t("unavailable"))
                 }
             }
         }

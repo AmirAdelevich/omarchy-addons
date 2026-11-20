@@ -6,7 +6,7 @@
   "start": "Старт",
   "apply": "Применить кривые",
   "restore": "Восстановить исходные",
-  "unavailable": "Управление через msi-ec недоступно",
+  "unavailable": "Драйвер msi-ec не загружен. Запусти: bash restore-desktop.sh --fan-only",
   "failed": "Операция не выполнена",
   "rpm": " об/мин",
   "fan1": "Вентилятор 1 ",

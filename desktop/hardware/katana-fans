@@ -29,7 +29,8 @@ def write(name, value):
 def metrics():
     fans = next((Path(p).parent for p in glob.glob("/sys/class/hwmon/hwmon*/name")
                  if optional(p) == "msi_wmi_platform"), None)
-    return dict(rpm=[optional(fans / f"fan{i}_input") if fans else None for i in (1, 2)],
+    return dict(available=(DRIVER / "fan_mode").is_file(),
+                rpm=[optional(fans / f"fan{i}_input") if fans else None for i in (1, 2)],
                 temp=[optional(DRIVER / chip / "realtime_temperature") for chip in ("cpu", "gpu")],
                 mode=optional(DRIVER / "fan_mode"), boost=optional(DRIVER / "cooler_boost"))
 
