@@ -111,6 +111,7 @@ bash addons-menu.sh --run 17 33  # короткая форма: блок 1 пу�
 | `install-sound-boost.sh` | Усиление звука с лимитером, `--gain`, `--remove` |
 | `install-mouse.sh` | Чувствительность мыши |
 | `install-no-gaps.sh` | NoGaps |
+| `microscope/install.sh` | Микроскоп H1600: просмотр, запись, фото, настройки |
 | `restore-desktop.sh` | Снимок рабочего стола, профиль вентиляторов |
 | `desktop/` | Снимок конфигов, плагинов и закреплённые ревизии |
 | `manifest.json` | Манифест плагина и версия |

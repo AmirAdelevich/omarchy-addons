@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Микроскоп — настройки
+Name[en]=Microscope — settings
+Comment=Качество, экспозиция, баланс белого и разрешение микроскопа H1600
+Comment[en]=Quality, exposure, white balance and resolution for the H1600 microscope
+Exec=@BIN@/microscope-settings
+Icon=preferences-other
+Terminal=false
+Categories=Settings;
+Keywords=microscope;camera;settings;микроскоп;камера;настройки;
+StartupNotify=true

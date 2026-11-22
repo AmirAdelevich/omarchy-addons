@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# Просмотр USB-микроскопа OSEECAM H1600 (0ac8:3420).
+#
+# Камера отдаёт MJPEG-кадры, у которых не хватает последних 1–3 MCU-строк
+# (8–24 строки снизу), поэтому любой декодер заливает низ кадра зелёным.
+# Здесь этот низ отрезается фильтром crop.
+#
+# Плеер — ffplay с флагами малой задержки: картинка идёт почти без лага
+# (проверено: ~0.2 с от изменения сцены до экрана, у mpv было ~0.5–0.8 с).
+#
+# Настройки берутся из ~/.config/microscope/config (их пишет приложение
+# «Микроскоп — настройки»), переменные окружения имеют приоритет:
+#   MICROSCOPE_DEV    устройство (по умолчанию — первая UVC-камера с MJPG)
+#   MICROSCOPE_SIZE   разрешение (640x480 … 1920x1080)
+#   MICROSCOPE_FPS    частота кадров
+#   MICROSCOPE_CROP   сколько строк снизу отрезать (по умолчанию 24)
+#
+# Клавиши ffplay: f — полный экран, q — выход, p — пауза.
+#
+# Проверка камеры (для гарантии/продавца):
+#   microscope --check
+set -euo pipefail
+
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/microscope/config"
+VIEW_SIZE=640x480
+VIEW_FPS=30
+VIEW_CROP=0
+[ -r "$CONFIG" ] && . "$CONFIG"
+
+SIZE="${MICROSCOPE_SIZE:-$VIEW_SIZE}"
+FPS="${MICROSCOPE_FPS:-$VIEW_FPS}"
+CROP="${MICROSCOPE_CROP:-$VIEW_CROP}"
+
+find_dev() {
+  if [ -n "${MICROSCOPE_DEV:-}" ]; then
+    if [ -e "$MICROSCOPE_DEV" ]; then echo "$MICROSCOPE_DEV"; return 0; fi
+    echo "Устройство $MICROSCOPE_DEV не найдено." >&2
+    return 1
+  fi
+  local d
+  for d in /dev/video*; do
+    [ -e "$d" ] || continue
+    if v4l2-ctl -d "$d" --list-formats 2>/dev/null | grep -q MJPG; then
+      echo "$d"
+      return 0
+    fi
+  done
+  echo "Не найдено ни одной UVC-камеры с MJPEG (/dev/video*)." >&2
+  return 1
+}
+
+check() {
+  local dev bad sample
+  dev="$(find_dev)"
+  echo "Микроскоп H1600 — проверка"
+  echo "Устройство: $dev"
+  v4l2-ctl -d "$dev" --get-fmt-video 2>/dev/null | sed 's/^/  /'
+  echo "Захват 3 с в режиме $SIZE@$FPS (MJPEG)..."
+  bad="$( { ffmpeg -hide_banner -loglevel error \
+            -f v4l2 -input_format mjpeg -video_size "$SIZE" -framerate "$FPS" \
+            -i "$dev" -t 3 -f null - 2>&1 || true; } \
+        | grep -cE 'huffman|overread|Invalid data' || true)"
+  echo "  ошибок декодера MJPEG за 3 с: $bad"
+  if [ "$bad" -gt 0 ]; then
+    echo "  Вывод: камера отдаёт битые (недописанные) JPG-кадры."
+  else
+    echo "  Вывод: кадры целые, ошибок нет."
+  fi
+  sample="$HOME/Pictures/Микроскоп-проверка.jpg"
+  mkdir -p "$HOME/Pictures"
+  ffmpeg -hide_banner -loglevel quiet -err_detect ignore_err \
+    -f v4l2 -input_format mjpeg -video_size "$SIZE" -framerate "$FPS" \
+    -i "$dev" -frames:v 1 "$sample" -y 2>/dev/null || true
+  [ -s "$sample" ] && echo "  Снимок для продавца: $sample"
+}
+
+if [ "${1:-}" = "--check" ]; then
+  check
+  exit 0
+fi
+
+DEV="$(find_dev)"
+if command -v fuser >/dev/null 2>&1 && fuser "$DEV" >/dev/null 2>&1; then
+  echo "Камера $DEV занята другой программой — закройте просмотр/guvcview/VLC и запустите снова." >&2
+  exit 1
+fi
+if ! v4l2-ctl -d "$DEV" --get-fmt-video >/dev/null 2>&1; then
+  echo "Не удалось открыть $DEV: камера занята другой программой или отключена." >&2
+  exit 1
+fi
+
+# Окно примерно 1150x650, пропорции сохраняет сам ffplay
+exec ffplay -hide_banner -loglevel error \
+  -f v4l2 -input_format mjpeg -video_size "$SIZE" -framerate "$FPS" \
+  -fflags nobuffer -flags low_delay -probesize 32 -analyzeduration 0 \
+  -vf "crop=iw:ih-$CROP:0:0" \
+  -window_title "Микроскоп H1600" -noborder -x 1720 -y 968 \
+  "$DEV"

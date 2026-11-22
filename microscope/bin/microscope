@@ -1,0 +1,332 @@
+#!/usr/bin/python3
+# Микроскоп H1600: окно с живым просмотром и кнопками «Запись», «Фото»,
+# «Настройки», «Во весь экран». Превью идёт из одного процесса ffmpeg,
+# поэтому запись, снимок и просмотр не конфликтуют за камеру.
+
+import os
+import glob
+import time
+import signal
+import subprocess
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+gi.require_version("Gdk", "4.0")
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import Gtk, Adw, GLib, Gdk, GdkPixbuf
+
+CONFIG = os.path.expanduser("~/.config/microscope/config")
+PICTURES = os.path.expanduser("~/Pictures")
+VIDEOS = os.path.expanduser("~/Videos")
+SETTINGS_APP = os.path.expanduser("~/.local/bin/microscope-settings")
+PREVIEW_W = 1280          # ширина превью в пикселях
+DEFAULT_SIZE = "640x480"
+DEFAULT_FPS = 30
+DEFAULT_CROP = 0
+
+
+def find_device():
+    for dev in sorted(glob.glob("/dev/video*")):
+        try:
+            out = subprocess.run(
+                ["v4l2-ctl", "-d", dev, "--list-formats"],
+                capture_output=True, text=True, timeout=5,
+            ).stdout
+        except Exception:
+            continue
+        if "MJPG" in out:
+            return dev
+    return None
+
+
+def load_config():
+    cfg = {}
+    try:
+        with open(CONFIG) as fh:
+            for line in fh:
+                if "=" in line and not line.startswith("#"):
+                    key, val = line.strip().split("=", 1)
+                    cfg[key.strip()] = val.strip()
+    except OSError:
+        pass
+    return cfg
+
+
+class MicroscopeApp(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id="ru.omarchy.Microscope")
+        self.dev = None
+        self.size = DEFAULT_SIZE
+        self.fps = DEFAULT_FPS
+        self.crop = DEFAULT_CROP
+        self.pw, self.ph = PREVIEW_W, 576
+        self.frame_size = self.pw * self.ph * 3
+        self.proc = None
+        self.watch_id = 0
+        self.buf = bytearray()
+        self.recording = False
+        self.rec_path = None
+        self.picture = None
+        self.last_frame = None
+        self.status = None
+        self.record_button = None
+
+    # ---------- окно ----------
+    def do_activate(self):
+        if getattr(self, "win", None) is not None:
+            self.win.present()
+            return
+        cfg = load_config()
+        self.size = cfg.get("VIEW_SIZE", DEFAULT_SIZE)
+        self.fps = int(cfg.get("VIEW_FPS", DEFAULT_FPS) or DEFAULT_FPS)
+        self.crop = int(cfg.get("VIEW_CROP", DEFAULT_CROP) or DEFAULT_CROP)
+        try:
+            w, h = (int(x) for x in self.size.split("x"))
+        except ValueError:
+            w, h = 640, 480
+            self.size = DEFAULT_SIZE
+        self.ph = max(2, round(PREVIEW_W * (h - self.crop) / w / 2) * 2)
+        self.frame_size = self.pw * self.ph * 3
+
+        self.dev = find_device()
+
+        win = Adw.ApplicationWindow(application=self)
+        win.set_title("Микроскоп H1600")
+        win.set_default_size(1280, 820)
+        win.connect("close-request", self.on_close)
+
+        header = Adw.HeaderBar()
+        title = Adw.WindowTitle(title="Микроскоп H1600", subtitle=self.size.replace("x", "×"))
+        header.set_title_widget(title)
+
+        self.record_button = Gtk.ToggleButton(label="Запись")
+        self.record_button.add_css_class("destructive-action")
+        self.record_button.set_tooltip_text("Начать/остановить запись видео")
+        self.record_button.connect("toggled", self.on_record_toggled)
+        header.pack_start(self.record_button)
+
+        photo = Gtk.Button(icon_name="camera-photo-symbolic")
+        photo.set_tooltip_text("Снимок (фото)")
+        photo.connect("clicked", self.on_photo)
+        header.pack_end(photo)
+
+        settings = Gtk.Button(icon_name="emblem-system-symbolic")
+        settings.set_tooltip_text("Настройки качества")
+        settings.connect("clicked", self.on_settings)
+        header.pack_end(settings)
+
+        full = Gtk.Button(icon_name="view-fullscreen-symbolic")
+        full.set_tooltip_text("Во весь экран (F11)")
+        full.connect("clicked", self.on_fullscreen)
+        header.pack_end(full)
+
+        self.picture = Gtk.Picture()
+        self.picture.set_content_fit(Gtk.ContentFit.CONTAIN)
+        self.picture.set_hexpand(True)
+        self.picture.set_vexpand(True)
+        self.picture.set_can_shrink(True)
+        bg = Gtk.Box()
+        bg.add_css_class("view")
+        bg.append(self.picture)
+        bg.set_hexpand(True)
+        bg.set_vexpand(True)
+
+        self.status = Gtk.Label(label="Запуск камеры…")
+        self.status.set_xalign(0)
+        self.status.set_margin_start(10)
+        self.status.set_margin_end(10)
+        self.status.set_margin_top(4)
+        self.status.set_margin_bottom(4)
+        self.status.add_css_class("dim-label")
+
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        content.append(bg)
+        content.append(self.status)
+
+        toolbar = Adw.ToolbarView()
+        toolbar.add_top_bar(header)
+        toolbar.set_content(content)
+        win.set_content(toolbar)
+
+        key = Gtk.EventControllerKey()
+        key.connect("key-pressed", self.on_key)
+        win.add_controller(key)
+
+        self.win = win
+        win.present()
+
+        if not self.dev:
+            self.status.set_text("Камера H1600 не найдена — подключите её и перезапустите окно.")
+            return
+        self.start_pipeline()
+
+    # ---------- конвейер ----------
+    def build_cmd(self, record=False):
+        crop = f"crop=iw:ih-{self.crop}:0:0"
+        prev = f"{crop},scale={self.pw}:{self.ph}:flags=fast_bilinear,format=rgb24"
+        cmd = [
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin",
+            "-fflags", "nobuffer", "-flags", "low_delay",
+            "-f", "v4l2", "-input_format", "mjpeg",
+            "-video_size", self.size, "-framerate", str(self.fps),
+            "-i", self.dev,
+            "-map", "0:v", "-vf", prev, "-f", "rawvideo", "pipe:1",
+        ]
+        if record:
+            os.makedirs(VIDEOS, exist_ok=True)
+            self.rec_path = os.path.join(
+                VIDEOS, f"Микроскоп-{time.strftime('%Y-%m-%d_%H-%M-%S')}.mkv")
+            cmd += ["-map", "0:v", "-vf", crop, "-c:v", "libx264",
+                    "-preset", "ultrafast", "-crf", "20",
+                    "-f", "matroska", self.rec_path]
+        return cmd
+
+    def start_pipeline(self, record=False):
+        self.stop_pipeline()
+        if not self.dev:
+            return
+        self.buf = bytearray()
+        try:
+            self.proc = subprocess.Popen(
+                self.build_cmd(record),
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL, bufsize=0,
+            )
+        except Exception as exc:
+            self.status.set_text(f"Не удалось запустить камеру: {exc}")
+            return
+        self.watch_id = GLib.io_add_watch(
+            self.proc.stdout.fileno(), GLib.PRIORITY_DEFAULT,
+            GLib.IO_IN | GLib.IO_HUP, self.on_readable,
+        )
+        self.update_status()
+
+    def stop_pipeline(self):
+        if self.watch_id:
+            try:
+                GLib.source_remove(self.watch_id)
+            except Exception:
+                pass
+            self.watch_id = 0
+        if self.proc:
+            proc = self.proc
+            self.proc = None
+            try:
+                proc.send_signal(signal.SIGINT)
+                proc.wait(timeout=3)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+
+    def on_readable(self, fd, _cond):
+        try:
+            chunk = os.read(fd, 1 << 20)
+        except OSError:
+            return False
+        if not chunk:
+            return False
+        self.buf += chunk
+        if len(self.buf) < self.frame_size:
+            return True
+        # рендерим последний полный кадр, остальное оставляем в буфере
+        while len(self.buf) >= self.frame_size:
+            frame = bytes(self.buf[: self.frame_size])
+            del self.buf[: self.frame_size]
+        try:
+            texture = Gdk.MemoryTexture.new(
+                self.pw, self.ph, Gdk.MemoryFormat.R8G8B8,
+                GLib.Bytes.new(frame), self.pw * 3,
+            )
+            self.last_frame = frame
+            self.picture.set_paintable(texture)
+        except Exception:
+            pass
+        return True
+
+    # ---------- кнопки ----------
+    def on_record_toggled(self, button):
+        if button.get_active():
+            self.recording = True
+            self.start_pipeline(record=True)
+            self.status.set_text(f"● Запись: {self.rec_path}")
+        else:
+            self.recording = False
+            self.start_pipeline(record=False)
+            self.status.set_text(f"Запись сохранена: {self.rec_path}")
+
+    def on_photo(self, _btn):
+        os.makedirs(PICTURES, exist_ok=True)
+        stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+        path = os.path.join(PICTURES, f"Микроскоп-{stamp}.jpg")
+        if self.recording:
+            # во время записи не прерываем поток: сохраняем текущий кадр превью
+            if self.last_frame is not None:
+                try:
+                    data = GLib.Bytes.new(self.last_frame)
+                    pix = GdkPixbuf.Pixbuf.new_from_bytes(
+                        data, GdkPixbuf.Colorspace.RGB, False, 8,
+                        self.pw, self.ph, self.pw * 3)
+                    pix.savev(path, "jpeg", ["quality"], ["95"])
+                    self.status.set_text(f"Снимок (превью): {path}")
+                except Exception as exc:
+                    self.status.set_text(f"Не удалось сохранить: {exc}")
+            else:
+                self.status.set_text("Кадр ещё не получен")
+            return
+        self.stop_pipeline()
+        crop = f"crop=iw:ih-{self.crop}:0:0"
+        cmd = [
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-err_detect", "ignore_err",
+            "-f", "v4l2", "-input_format", "mjpeg", "-video_size", self.size,
+            "-framerate", str(self.fps), "-i", self.dev,
+            "-vf", crop, "-frames:v", "1", path, "-y",
+        ]
+        result = subprocess.run(cmd, capture_output=True)
+        self.start_pipeline(record=False)
+        if result.returncode == 0 and os.path.exists(path):
+            self.status.set_text(f"Снимок: {path}")
+        else:
+            self.status.set_text("Не удалось сделать снимок")
+
+    def on_settings(self, _btn):
+        try:
+            subprocess.Popen([SETTINGS_APP])
+        except Exception as exc:
+            self.status.set_text(f"Не удалось открыть настройки: {exc}")
+
+    def on_fullscreen(self, _btn):
+        if self.win.is_fullscreen():
+            self.win.unfullscreen()
+        else:
+            self.win.fullscreen()
+
+    def on_key(self, _controller, keyval, _keycode, _state):
+        if keyval == Gdk.KEY_r:
+            self.record_button.set_active(not self.record_button.get_active())
+            return True
+        if keyval == Gdk.KEY_p:
+            self.on_photo(None)
+            return True
+        if keyval == Gdk.KEY_F11:
+            self.on_fullscreen(None)
+            return True
+        if keyval == Gdk.KEY_Escape and self.win.is_fullscreen():
+            self.win.unfullscreen()
+            return True
+        return False
+
+    def update_status(self):
+        if self.status:
+            mode = "● запись" if self.recording else "просмотр"
+            self.status.set_text(f"{self.size.replace('x', '×')} · {self.fps} к/с · {mode} · {self.dev}")
+
+    def on_close(self, _win):
+        self.stop_pipeline()
+        return False
+
+
+if __name__ == "__main__":
+    MicroscopeApp().run()

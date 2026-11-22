@@ -52,6 +52,7 @@ item "Chrome браузером по умолчанию" "setting:default-browse
 # 4. ОБОРУДОВАНИЕ
 section "ОБОРУДОВАНИЕ"
 item "Профиль вентиляторов MSI Katana" "hardware:fans"
+item "Микроскоп H1600: просмотр, запись, фото, настройки" "hardware:microscope"
 
 # 5. РАБОЧИЙ СТОЛ
 section "РАБОЧИЙ СТОЛ"
@@ -67,6 +68,7 @@ run() {
     setting:autoscroll) bash "$repo/install-all.sh" autoscroll ;;
     setting:default-browser) bash "$repo/install-all.sh" default-browser ;;
     hardware:fans) bash "$repo/restore-desktop.sh" --fan-only ;;
+    hardware:microscope) bash "$repo/install-all.sh" microscope ;;
     desktop:snapshot) bash "$repo/restore-desktop.sh" --packages --keep-addons-widget --keep-input-and-gaps ;;
     *)
       printf 'Неизвестное действие: %s\n' "$1" >&2

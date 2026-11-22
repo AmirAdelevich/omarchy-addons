@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Микроскоп (H1600)
+Name[en]=Microscope (H1600)
+Comment=Просмотр USB-микроскопа H1600: запись, фото, настройки
+Comment[en]=H1600 USB microscope viewer: recording, photo, settings
+Exec=@BIN@/microscope
+Icon=camera-web
+Terminal=false
+Categories=AudioVideo;
+Keywords=microscope;camera;video;микроскоп;камера;
+StartupNotify=true
+Actions=settings;
+
+[Desktop Action settings]
+Name=Настройки
+Name[en]=Settings
+Exec=@BIN@/microscope-settings

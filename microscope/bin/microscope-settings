@@ -1,0 +1,294 @@
+#!/usr/bin/python3
+# Настройки USB-микроскопа H1600 (0ac8:3420): качество, экспозиция, баланс белого,
+# разрешение и частота кадров. Значения применяются к камере сразу (v4l2-ctl),
+# разрешение/частота сохраняются в ~/.config/microscope/config и используются
+# просмотрщиком «Микроскоп (H1600)».
+
+import os
+import glob
+import subprocess
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Gtk, Adw, GLib
+
+CONFIG_DIR = os.path.expanduser("~/.config/microscope")
+CONFIG = os.path.join(CONFIG_DIR, "config")
+PICTURES = os.path.expanduser("~/Pictures")
+VIEWER = os.path.expanduser("~/.local/bin/microscope")
+
+# название контрола -> (подпись, мин, макс)
+CONTROLS = [
+    ("brightness", "Яркость", 0, 255),
+    ("contrast", "Контраст", 0, 255),
+    ("saturation", "Насыщенность", 0, 255),
+    ("sharpness", "Резкость", 0, 255),
+    ("white_balance_temperature", "Баланс белого", 1, 5),
+    ("exposure_time_absolute", "Экспозиция", 0, 320),
+]
+
+
+def find_device():
+    for dev in sorted(glob.glob("/dev/video*")):
+        try:
+            out = subprocess.run(
+                ["v4l2-ctl", "-d", dev, "--list-formats"],
+                capture_output=True, text=True, timeout=5,
+            ).stdout
+        except Exception:
+            continue
+        if "MJPG" in out:
+            return dev
+    return None
+
+
+def ctl_get(dev, names):
+    try:
+        out = subprocess.run(
+            ["v4l2-ctl", "-d", dev, "--get-ctrl=" + ",".join(names)],
+            capture_output=True, text=True, timeout=5,
+        ).stdout
+    except Exception:
+        return {}
+    values = {}
+    for line in out.splitlines():
+        if ":" in line:
+            key, val = line.split(":", 1)
+            try:
+                values[key.strip()] = int(val.strip())
+            except ValueError:
+                pass
+    return values
+
+
+def ctl_set(dev, **kwargs):
+    args = ["v4l2-ctl", "-d", dev]
+    for key, value in kwargs.items():
+        args += ["-c", f"{key}={value}"]
+    try:
+        subprocess.run(args, capture_output=True, timeout=5)
+    except Exception:
+        pass
+
+
+def list_sizes(dev):
+    try:
+        out = subprocess.run(
+            ["v4l2-ctl", "-d", dev, "--list-formats-ext"],
+            capture_output=True, text=True, timeout=5,
+        ).stdout
+    except Exception:
+        return ["640x480"]
+    sizes = []
+    for line in out.splitlines():
+        line = line.strip()
+        if line.startswith("Size: Discrete"):
+            size = line.split()[-1]
+            if size not in sizes:
+                sizes.append(size)
+    return sizes or ["640x480"]
+
+
+def load_config():
+    data = {}
+    try:
+        with open(CONFIG) as fh:
+            for line in fh:
+                if "=" in line and not line.startswith("#"):
+                    key, val = line.strip().split("=", 1)
+                    data[key.strip()] = val.strip().strip('"')
+    except OSError:
+        pass
+    return data
+
+
+def save_config(size, fps):
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    with open(CONFIG, "w") as fh:
+        fh.write("# Настройки просмотрщика микроскопа H1600\n")
+        fh.write(f"VIEW_SIZE={size}\n")
+        fh.write(f"VIEW_FPS={fps}\n")
+
+
+class MicroscopeSettings(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id="ru.omarchy.MicroscopeSettings")
+        self.dev = None
+        self.scales = {}
+        self.pending = False
+        self.size_dropdown = None
+        self.fps_dropdown = None
+        self.sizes = []
+        self.fps_values = [30, 25, 20, 15, 10, 5]
+        self.wb_switch = None
+        self.status = None
+
+    # ---------- UI ----------
+    def do_activate(self):
+        self.dev = find_device()
+        win = Adw.ApplicationWindow(application=self)
+        win.set_title("Микроскоп H1600")
+        win.set_default_size(560, 760)
+
+        header = Adw.HeaderBar()
+        title = Adw.WindowTitle(title="Настройки микроскопа", subtitle=self.dev or "камера не найдена")
+        header.set_title_widget(title)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.set_margin_top(12)
+        box.set_margin_bottom(12)
+        box.set_margin_start(12)
+        box.set_margin_end(12)
+
+        if not self.dev:
+            box.append(Gtk.Label(label="Камера H1600 не найдена.\nПодключите её и откройте окно заново."))
+            win.set_child(box)
+            win.present()
+            return
+
+        cfg = load_config()
+        current = ctl_get(self.dev, [c[0] for c in CONTROLS])
+
+        # --- разрешение и частота ---
+        self.sizes = list_sizes(self.dev)
+        size_names = Gtk.StringList()
+        for s in self.sizes:
+            size_names.append(s)
+        self.size_dropdown = Gtk.DropDown(model=size_names)
+        saved_size = cfg.get("VIEW_SIZE", "640x480")
+        self.size_dropdown.set_selected(self.sizes.index(saved_size) if saved_size in self.sizes else 0)
+        self.size_dropdown.connect("notify::selected", self.on_view_changed)
+
+        fps_names = Gtk.StringList()
+        for f in self.fps_values:
+            fps_names.append(f"{f} к/с")
+        self.fps_dropdown = Gtk.DropDown(model=fps_names)
+        saved_fps = int(cfg.get("VIEW_FPS", "30") or 30)
+        self.fps_dropdown.set_selected(self.fps_values.index(saved_fps) if saved_fps in self.fps_values else 0)
+        self.fps_dropdown.connect("notify::selected", self.on_view_changed)
+
+        camera_group = Adw.PreferencesGroup(title="Камера")
+        camera_group.set_description("Разрешение и частота применяются при следующем запуске просмотра")
+        row = Adw.ActionRow(title="Разрешение")
+        row.add_suffix(self.size_dropdown)
+        camera_group.add(row)
+        row = Adw.ActionRow(title="Частота кадров")
+        row.add_suffix(self.fps_dropdown)
+        camera_group.add(row)
+        box.append(camera_group)
+
+        # --- качество ---
+        quality_group = Adw.PreferencesGroup(title="Качество изображения")
+        for ctl, label, lo, hi in CONTROLS:
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            row.set_margin_top(4)
+            row.set_margin_bottom(4)
+            name = Gtk.Label(label=label)
+            name.set_xalign(0)
+            name.set_size_request(150, -1)
+            scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, lo, hi, 1)
+            scale.set_hexpand(True)
+            scale.set_draw_value(True)
+            scale.set_value(current.get(ctl, lo))
+            scale.connect("value-changed", self.on_scale_changed)
+            self.scales[ctl] = scale
+            row.append(name)
+            row.append(scale)
+            quality_group.add(row)
+        box.append(quality_group)
+
+        # --- прочее ---
+        misc_group = Adw.PreferencesGroup(title="Прочее")
+        wb_row = Adw.ActionRow(title="Авто-баланс белого")
+        self.wb_switch = Gtk.Switch()
+        self.wb_switch.set_active(True)
+        self.wb_switch.connect("notify::active", self.on_wb_changed)
+        wb_row.add_suffix(self.wb_switch)
+        misc_group.add(wb_row)
+        box.append(misc_group)
+
+        # --- кнопки ---
+        buttons = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        buttons.set_homogeneous(True)
+        reset = Gtk.Button(label="Сброс")
+        reset.connect("clicked", self.on_reset)
+        snap = Gtk.Button(label="Снимок")
+        snap.connect("clicked", self.on_snapshot)
+        view = Gtk.Button(label="Просмотр")
+        view.add_css_class("suggested-action")
+        view.connect("clicked", self.on_viewer)
+        for b in (reset, snap, view):
+            b.set_hexpand(True)
+            buttons.append(b)
+        box.append(buttons)
+
+        self.status = Gtk.Label(label="")
+        self.status.set_xalign(0)
+        self.status.add_css_class("dim-label")
+        box.append(self.status)
+
+        toolbar = Adw.ToolbarView()
+        toolbar.add_top_bar(header)
+        toolbar.set_content(box)
+        win.set_content(toolbar)
+        win.present()
+
+    # ---------- действия ----------
+    def on_scale_changed(self, _scale):
+        if self.pending:
+            return
+        self.pending = True
+        GLib.timeout_add(120, self.apply_scales)
+
+    def apply_scales(self):
+        self.pending = False
+        values = {ctl: int(sc.get_value()) for ctl, sc in self.scales.items()}
+        ctl_set(self.dev, **values)
+        return False
+
+    def on_wb_changed(self, switch, _param):
+        ctl_set(self.dev, white_balance_automatic=1 if switch.get_active() else 0)
+
+    def on_view_changed(self, _w, _p):
+        size = self.sizes[self.size_dropdown.get_selected()]
+        fps = self.fps_values[self.fps_dropdown.get_selected()]
+        save_config(size, fps)
+        self.status.set_text(f"Сохранено: {size} @ {fps} к/с")
+
+    def on_reset(self):
+        defaults = {"brightness": 128, "contrast": 128, "saturation": 64,
+                    "sharpness": 128, "exposure_time_absolute": 20,
+                    "white_balance_temperature": 1}
+        for ctl, value in defaults.items():
+            if ctl in self.scales:
+                self.scales[ctl].set_value(value)
+        self.wb_switch.set_active(True)
+        ctl_set(self.dev, **defaults, white_balance_automatic=1)
+        self.status.set_text("Настройки сброшены")
+
+    def on_snapshot(self):
+        size = self.sizes[self.size_dropdown.get_selected()]
+        fps = self.fps_values[self.fps_dropdown.get_selected()]
+        os.makedirs(PICTURES, exist_ok=True)
+        stamp = GLib.DateTime.new_now_local().format("%Y-%m-%d_%H-%M-%S")
+        path = os.path.join(PICTURES, f"Микроскоп-{stamp}.jpg")
+        cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-err_detect", "ignore_err",
+               "-f", "v4l2", "-input_format", "mjpeg", "-video_size", size,
+               "-framerate", str(fps), "-i", self.dev, "-frames:v", "1", path, "-y"]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode == 0 and os.path.exists(path):
+            self.status.set_text(f"Снимок: {path}")
+        else:
+            self.status.set_text("Не удалось сделать снимок (камера занята?)")
+
+    def on_viewer(self, _btn):
+        try:
+            subprocess.Popen([VIEWER])
+            self.status.set_text("Просмотр запущен")
+        except Exception as exc:
+            self.status.set_text(f"Ошибка запуска: {exc}")
+
+
+if __name__ == "__main__":
+    MicroscopeSettings().run()

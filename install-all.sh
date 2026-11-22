@@ -6,7 +6,7 @@ set -euo pipefail
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
-components=(chrome code telegram tailscale libreoffice papers webapps cryptopro hiddify autoscroll default-browser)
+components=(chrome code telegram tailscale libreoffice papers webapps cryptopro hiddify autoscroll default-browser microscope)
 
 usage() {
   cat <<'EOF'
@@ -126,6 +126,10 @@ install_autoscroll() {
   python3 "$repo_dir/enable-chrome-autoscroll.py"
 }
 
+install_microscope() {
+  bash "$repo_dir/microscope/install.sh"
+}
+
 install_default_browser() {
   require xdg-settings
   if ! env -u BROWSER xdg-settings set default-web-browser google-chrome.desktop ||
@@ -147,7 +151,7 @@ fi
 for component in "${selected[@]}"; do
   case $component in
     -h|--help) usage; exit 0 ;;
-    chrome|code|telegram|tailscale|libreoffice|papers|webapps|cryptopro|hiddify|autoscroll|default-browser) ;;
+    chrome|code|telegram|tailscale|libreoffice|papers|webapps|cryptopro|hiddify|autoscroll|default-browser|microscope) ;;
     *) usage >&2; die "Неизвестный компонент: $component" ;;
   esac
 done
