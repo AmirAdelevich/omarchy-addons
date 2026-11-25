@@ -1,12 +1,16 @@
 [Unit]
-Description=Load the Katana fan controller
-ConditionPathExists=/usr/local/libexec/katana-msi-ec-7.2.15-1-omarchy.ko
+Description=Загрузить драйвер управления вентиляторами MSI Katana
+After=systemd-modules-load.service sys-kernel-debug.mount
+Wants=sys-kernel-debug.mount
 
 [Service]
 Type=oneshot
-ExecCondition=/usr/bin/grep -qx 7.2.15-1-omarchy /proc/sys/kernel/osrelease
-ExecStart=/usr/bin/sh -c "test -d /sys/devices/platform/msi-ec || exec /usr/bin/insmod /usr/local/libexec/katana-msi-ec-7.2.15-1-omarchy.ko"
+ExecStart=/usr/bin/modprobe msi-ec
+ExecStart=/usr/bin/grep -qx 17L5EMS2.115 /sys/devices/platform/msi-ec/fw_version
+ExecStart=/usr/bin/test -r /sys/devices/platform/msi-ec/fan_mode
 ExecStart=/usr/bin/modprobe ec_sys write_support=1
+ExecStart=/usr/bin/grep -qx Y /sys/module/ec_sys/parameters/write_support
+ExecStart=/usr/bin/test -e /sys/kernel/debug/ec/ec0/io
 RemainAfterExit=yes
 
 [Install]

@@ -1,5 +1,11 @@
-# MSI Katana controller snapshot
+# Драйвер MSI EC для Katana
 
-The msi-ec module was installed locally for kernel 7.2.15-1-omarchy. It reports module version 0.18 and srcversion A182AF2C50B5A24795B712A. Its license is GPL and its upstream source is https://github.com/BeardOverflow/msi-ec. Debug-only build metadata was removed from the exported module. The SHA-256 is recorded in katana-profile.json.
+В каталоге `msi-ec/` находятся исходники версии 0.18 из
+[репозитория BeardOverflow/msi-ec](https://github.com/BeardOverflow/msi-ec/tree/b1bf9e3f9d0465934ffcfc4f02729725b0ee1973).
+Драйвер распознаёт семейство прошивок `17L5EMS2.1`. Служба проверяет полную
+версию `17L5EMS2.115` перед включением записи кривых через `ec_sys`.
+Локальный Kbuild учитывает переименование функций ACPI в новых ядрах.
 
-The restore script checks the notebook model, exact kernel and controller firmware before applying the saved fan profile. Hardware setup requires --fan-control. The systemd unit restores the saved profile at boot.
+DKMS собирает модуль по заголовкам текущего ядра и устанавливает его для
+загрузки через modprobe. При обновлении ядра сборку запускает штатный хук
+DKMS. Заголовки должны обновляться вместе с ядром.

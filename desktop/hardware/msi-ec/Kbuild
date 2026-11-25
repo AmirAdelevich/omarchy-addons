@@ -1,0 +1,8 @@
+obj-m += msi-ec.o
+ccflags-y += -std=gnu11 -Wno-declaration-after-statement
+
+# Новые заголовки ядра используют префикс acpi_ для функций battery hook.
+ifneq ($(shell grep -l 'void acpi_battery_hook_register' $(srctree)/include/acpi/battery.h),)
+ccflags-y += -Dbattery_hook_register=acpi_battery_hook_register
+ccflags-y += -Dbattery_hook_unregister=acpi_battery_hook_unregister
+endif

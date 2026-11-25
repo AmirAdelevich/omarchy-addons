@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.amiradelevich.omarchy-addons",
   "name": "Omarchy Add-ons",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "author": "AmirAdelevich",
   "description": "Install applications and Omarchy add-ons, configure system runtime settings, and restore the saved desktop",
   "kinds": ["bar-widget"],

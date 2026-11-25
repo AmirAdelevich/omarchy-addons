@@ -8,11 +8,13 @@ apps="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 packages=false
 fan_control=false
 fan_only=false
+fan_driver_only=false
 keep_input_and_gaps=false
 keep_addons_widget=false
 for argument in "$@"; do
   case $argument in
     --packages) packages=true ;;
+    --fan-driver-only) fan_driver_only=true ;;
     --fan-only) fan_only=true ;;
     --keep-input-and-gaps) keep_input_and_gaps=true ;;
     --fan-control) fan_control=true ;;
@@ -42,40 +44,47 @@ fi
 
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT
-apply_fan_profile() {
-  python3 - "$snapshot/hardware/katana-profile.json" <<'PYMODEL'
-import hashlib,json,pathlib,platform,sys
-source=pathlib.Path(sys.argv[1]);p=json.loads(source.read_text())
-if pathlib.Path('/sys/class/dmi/id/product_name').read_text().strip()!=p['model']:
- raise SystemExit('Профиль вентиляторов рассчитан на другую модель компьютера.')
-if platform.release()!=p['kernel']:
- raise SystemExit('Для этого ядра нужно пересобрать модуль msi-ec. Снимок рассчитан на '+p['kernel'])
-if hashlib.sha256((source.parent/p['module']).read_bytes()).hexdigest()!=p['moduleSha256']:
- raise SystemExit('Контрольная сумма модуля msi-ec не совпала.')
-PYMODEL
+install_fan_driver() {
+  local kernel source file backup
+  kernel=$(uname -r)
+  source=/usr/src/msi-ec-0.18.katana1
+  if [[ $(</sys/class/dmi/id/product_name) != 'Katana 17 B12VFK' ]]; then
+    echo 'Драйвер в этом установщике рассчитан на MSI Katana 17 B12VFK.' >&2
+    return 1
+  fi
+  if ! command -v dkms >/dev/null || [[ ! -f "/usr/lib/modules/$kernel/build/Makefile" ]]; then
+    echo 'Установи dkms и заголовки текущего ядра. Для ядра Omarchy нужен пакет linux-omarchy-headers.' >&2
+    return 1
+  fi
+
+  sudo install -d -o root -g root -m 0755 "$source"
+  sudo install -o root -g root -m 0644 "$snapshot/hardware/msi-ec/"* "$source/"
+  sudo dkms install msi-ec/0.18.katana1 -k "$kernel"
+
+  backup=""
+  for file in /etc/systemd/system/katana-fans-driver.service \
+              /etc/systemd/system/katana-fans-driver.service.d/restore.conf; do
+    if [[ -f "$file" ]]; then
+      if [[ -z "$backup" ]]; then
+        mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}"
+        backup=$(mktemp -d "${XDG_STATE_HOME:-$HOME/.local/state}/katana-fans.XXXXXXXX")
+        printf 'Резервная копия службы: %s\n' "$backup"
+      fi
+      cp -- "$file" "$backup/"
+    fi
+  done
   sudo install -D -o root -g root -m 0755 "$snapshot/hardware/katana-fans" /usr/local/libexec/katana-fans
-  sudo install -o root -g root -m 0644 "$snapshot/hardware/katana-msi-ec-7.2.15-1-omarchy.ko" /usr/local/libexec/katana-msi-ec-7.2.15-1-omarchy.ko
   sudo install -D -o root -g root -m 0644 "$snapshot/hardware/katana-fans-driver.service" /etc/systemd/system/katana-fans-driver.service
   sudo install -D -o root -g root -m 0644 "$snapshot/hardware/katana-restore.conf" /etc/systemd/system/katana-fans-driver.service.d/restore.conf
   sudo systemctl daemon-reload
-  sudo systemctl enable --now katana-fans-driver.service || {
-    sudo systemctl status --no-pager --full katana-fans-driver.service || true
-    return 1
-  }
-  if [[ ! -d /sys/devices/platform/msi-ec ]]; then
-    sudo journalctl -u katana-fans-driver.service --no-pager -n 30 >&2 || true
-    echo 'Не удалось загрузить драйвер msi-ec; управление вентиляторами не настроено.' >&2
-    return 1
-  fi
-  python3 - "$snapshot/hardware/katana-profile.json" <<'PY'
-import json,pathlib,sys
-p=json.load(open(sys.argv[1]))
-if pathlib.Path('/sys/class/dmi/id/product_name').read_text().strip()!=p['model']:
- raise SystemExit('Профиль вентиляторов рассчитан на другую модель компьютера.')
-firmware=pathlib.Path('/sys/devices/platform/msi-ec/fw_version')
-if not firmware.is_file() or firmware.read_text().strip()!=p['firmware']:
- raise SystemExit('Нужен драйвер msi-ec и соответствующая прошивка контроллера.')
-PY
+  sudo systemctl restart katana-fans-driver.service
+  sudo systemctl enable katana-fans-driver.service
+  printf 'Драйвер MSI EC установлен для %s, пересборка DKMS включена.\n' "$kernel"
+}
+
+apply_fan_profile() {
+  local -a fan speeds
+  install_fan_driver
   printf '%s ALL=(root) NOPASSWD: /usr/local/libexec/katana-fans\n' "$(id -un)" > "$tmp/fan-policy"
   sudo visudo -cf "$tmp/fan-policy"
   sudo install -m 0440 -o root -g root "$tmp/fan-policy" /etc/sudoers.d/omarchy-addons-katana-fans
@@ -90,6 +99,11 @@ PY
   sudo /usr/local/libexec/katana-fans mode "${fan[1]}"
   sudo /usr/local/libexec/katana-fans boost "${fan[2]}"
 }
+
+if $fan_driver_only; then
+  install_fan_driver
+  exit 0
+fi
 
 if $fan_only; then
   apply_fan_profile
