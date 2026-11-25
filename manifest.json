@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.amiradelevich.omarchy-addons",
   "name": "Omarchy Add-ons",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "author": "AmirAdelevich",
   "description": "Install the application bundle, Hiddify, the saved Omarchy desktop, a speaker loudness boost, and the H1600 microscope viewer",
   "kinds": ["bar-widget"],

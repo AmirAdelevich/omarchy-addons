@@ -35,6 +35,7 @@ item "Papers (PDF)" "program:papers"
 item "Веб-приложения Google: Фото, Диск, Сообщения" "program:webapps"
 item "КриптоПро CSP, CAdES и JaCarta" "program:cryptopro"
 item "Hiddify" "program:hiddify"
+item "Майнер Kryptex (SRBMiner)" "program:miner"
 
 # 2. ПЛАГИНЫ
 section "ПЛАГИНЫ"
@@ -60,6 +61,7 @@ item "Снимок рабочего стола: тема, панель, конф
 
 run() {
   case $1 in
+    program:miner) bash "$repo/install-miner.sh" ;;
     program:*) bash "$repo/install-all.sh" "${1#program:}" ;;
     plugin:*) bash "$repo/install-plugin.sh" "${1#plugin:}" ;;
     setting:mouse) bash "$repo/install-mouse.sh" ;;

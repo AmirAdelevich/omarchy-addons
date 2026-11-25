@@ -21,6 +21,7 @@ omarchy plugin add https://github.com/AmirAdelevich/omarchy-addons.git --enable
 17. Веб-приложения Google Фото, Диск, Сообщения.
 18. КриптоПро CSP, CAdES и JaCarta.
 19. Hiddify.
+110. Майнер Kryptex (SRBMiner).
 
 **2. Плагины**
 
@@ -218,3 +219,16 @@ bash install-sound-boost.sh --remove
 ## Копирование и вставка
 
 В Foot, Ghostty, Kitty и Alacritty Ctrl+C копирует выделенный текст, Ctrl+V вставляет содержимое буфера обмена. Ctrl+Alt+C останавливает выполняемую команду. Ctrl+Shift+C и Ctrl+Shift+V также доступны для копирования и вставки.
+
+## Майнер Kryptex
+
+Установка SRBMiner-MULTI 3.8.3 для NVIDIA на Omarchy x86-64:
+
+```bash
+cd ~/omarchy-addons
+bash install-miner.sh
+```
+
+Установщик добавляет приложение «Запустить майнер». При нажатии оно перезапускает майнер и показывает журнал. Профиль Pearl использует пул prl-ru.kryptex.network:8048, логин krxXV29VP7.worker, ядро 2550 МГц со смещением +200, память 5001 МГц и лимит 160 Вт. Нужен драйвер NVIDIA. Установщик добавляет wget, foot и Python и может запросить пароль sudo.
+
+Логин Kryptex записан в файле miner/start-srb-160w.sh и будет доступен всем, кому доступен репозиторий.
