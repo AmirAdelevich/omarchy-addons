@@ -1,0 +1,17 @@
+[Unit]
+Description=Hermes Agent dashboard on the LAN (password protected)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.hermes/hermes-agent
+Environment=HOME=%h
+Environment=PATH=%h/.local/share/mise/installs/node/latest/bin:/usr/local/bin:/usr/bin:/bin
+Environment=NODE_ENV=production
+ExecStart=%h/.hermes/hermes-agent/venv/bin/hermes dashboard --host 0.0.0.0 --port 9119 --no-open
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

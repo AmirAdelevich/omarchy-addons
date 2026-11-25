@@ -1,0 +1,14 @@
+[Unit]
+Description=Keep Google Chrome available for its extensions
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/chrome-parser-keepalive
+KillMode=process
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

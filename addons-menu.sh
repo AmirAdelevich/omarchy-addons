@@ -49,6 +49,8 @@ item "NoGaps: убрать отступы окон" "setting:nogaps"
 item "Усиление звука динамиков: +10 дБ с ограничителем" "setting:sound"
 item "Прокрутка колёсиком в Chrome" "setting:autoscroll"
 item "Chrome браузером по умолчанию" "setting:default-browser"
+item "TRIM: проверить и переключить" "setting:trim"
+item "Автозапуск Google Chrome и Hermes Agent" "setting:runtime-autostart"
 
 # 4. ОБОРУДОВАНИЕ
 section "ОБОРУДОВАНИЕ"
@@ -69,6 +71,8 @@ run() {
     setting:sound) bash "$repo/install-sound-boost.sh" ;;
     setting:autoscroll) bash "$repo/install-all.sh" autoscroll ;;
     setting:default-browser) bash "$repo/install-all.sh" default-browser ;;
+    setting:trim) bash "$repo/install-runtime-settings.sh" trim ;;
+    setting:runtime-autostart) bash "$repo/install-runtime-settings.sh" autostart ;;
     hardware:fans) bash "$repo/restore-desktop.sh" --fan-only ;;
     hardware:microscope) bash "$repo/install-all.sh" microscope ;;
     desktop:snapshot) bash "$repo/restore-desktop.sh" --packages --keep-addons-widget --keep-input-and-gaps ;;
@@ -117,7 +121,7 @@ print_menu() {
     n=$((n + 1))
     printf '   %d%d. %s\n' "$((s + 1))" "$n" "${items_label[i]}"
   done
-  printf '\nПиши блок и пункт подряд: 21 — плагин Fans, 34 — прокрутка колёсиком, 35 — Chrome по умолчанию.\n'
+  printf '\nПиши блок и пункт подряд: 21 — плагин Fans, 34 — прокрутка колёсиком, 36 — TRIM, 37 — автозапуск Chrome и Hermes.\n'
   printf 'Можно и через точку: 2.1, 3.5. Пункты блока 1, а также 34 и 35 ставят только выбранное.\n'
   printf 'Пункт 51 заменяет настройки и сохраняет резервную копию.\n'
   printf 'Для пакетов и системных настроек может понадобиться sudo.\n'
